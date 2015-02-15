@@ -2,6 +2,9 @@
 The MIT License (MIT)
 
 Copyright (c) 2015 Abraham TEWA
+              2009 Chris Wanstrath
+              2010-2014 Jan Lehnardt
+              2011-2015 TJ Holowaychuk <tj@vision-media.ca>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -774,11 +777,15 @@ This software include the following third-party programs :
 
          testContext            = TestContext.bind(thisObject);
          testContext.console    = console.bind(thisObject);
+         testContext.comment    = comment.bind(thisObject);
+         testContext.describe   = describe.bind(thisObject);
          testContext.disable    = disable.bind(thisObject);
          testContext.display    = display.bind(thisObject);
          testContext.done       = done.bind(thisObject);
          testContext.getData    = getData.bind(thisObject);
+         testContext.note       = note.bind(thisObject);
          testContext.reset      = reset.bind(thisObject);
+         testContext.todo       = todo.bind(thisObject);
          testContext._info      = getInfo.bind(thisObject);
 
          Object.defineProperties(testContext, { async   : {get : async.bind(thisObject)}
@@ -791,6 +798,15 @@ This software include the following third-party programs :
          thisObject.reset       = testContext.reset;
 
          return testContext;
+      };
+
+      /**
+       * @param {string} text
+       * @returns {ThisTestContextInfo}
+       */
+      var comment                                = function comment(text) {
+         this.info.test.comment(text);
+         return this.context;
       };
 
       /**
@@ -824,6 +840,15 @@ This software include the following third-party programs :
          if (this.info.enabled)
             this.info.enabled = false;
 
+         return this.context;
+      };
+
+      /**
+       * @param {string} text
+       * @returns {ThisTestContextInfo}
+       */
+      var describe                               = function describe(text) {
+         this.info.test.describe(text);
          return this.context;
       };
 
@@ -873,12 +898,22 @@ This software include the following third-party programs :
        * @returns {ThisTestContextInfo}
        * @constructor
        */
-      var getInfo                                = function(receivedToken) {
+      var getInfo                                = function getInfo(receivedToken) {
 
          if (receivedToken !== token)
             throw 'Invalid token';
 
          return this.info;
+      };
+
+      /**
+       *
+       * @param {string} note
+       * @returns {ThisTestContextInfo}
+       */
+      var note                                   = function note(note) {
+         this.info.test.note(note);
+         return this.context;
       };
 
       /**
@@ -939,6 +974,15 @@ This software include the following third-party programs :
          return this.context;
       };
 
+      /**
+       * @param {string} text
+       * @returns {ThisTestContextInfo}
+       */
+      var todo                                   = function comment(text) {
+         this.info.test.todo(text);
+         return this.context;
+      };
+
       return build;
    })();
 
@@ -972,6 +1016,7 @@ This software include the following third-party programs :
     * @property {boolean}           async
     * @property {boolean|undefined} asyncTests
     * @property {TestContext}       childContext
+    * @property {string}            comment
     * @property {Date}              creationDate         - Date of creation of the test
     * @property {string}            description
     * @property {DOMTest}           domTest
@@ -994,10 +1039,12 @@ This software include the following third-party programs :
     * @property {TestType}          testType
     * @property {number|undefined}  timeout              - If provided, then correspond to the maximum duration of the test function. After that, the test will be considered has failed
     * @property {string}            promiseRole          - Role of the test relatively to the parent test promise. Could be undefined, "then" or "catch".
+    * @property {string[]}          toDoList             - Contain all todos
     * @property {string}            title
     */
    var TestUnit                                  = function TestUnit(param) {
 
+      this.comments       = [];
       this.context        = param.context;
       this.creationDate   = new Date();
       this.enabled        = param.enabled;
@@ -1014,6 +1061,9 @@ This software include the following third-party programs :
       this.value          = param.value;
       this.executionDelay = param.executionDelay;
       this.errorExpected  = false;
+      this.toDoList       = [];
+
+      this.notes          = [];
 
       this.async          = param.async || this.executionDelay !== false || this.value instanceof Promise;
 
@@ -1150,6 +1200,16 @@ This software include the following third-party programs :
          catchPromise = this.getPromise().then(param1, param2);
 
       return catchPromise;
+   };
+
+   /**
+    *
+    * @param {string} comment
+    * @returns {TestUnit}
+    */
+   TestUnit.prototype.comment                    = function comment(comment) {
+      this.comments.push(comment);
+      return this;
    };
 
    //noinspection JSUnusedGlobalSymbols
@@ -1335,6 +1395,14 @@ This software include the following third-party programs :
    };
 
    /**
+    *
+    * @returns {string[]}
+    */
+   TestUnit.prototype.getComments                = function getComments() {
+      return this.comments.slice(0);
+   };
+
+   /**
     * Return the promise that will be executed once all the test and sub-tests (including promises tests) are finished
     *
     * @returns {Promise}
@@ -1487,6 +1555,14 @@ This software include the following third-party programs :
    };
 
    /**
+    * Return all notes of the test
+    * @returns {string[]}
+    */
+   TestUnit.prototype.getNotes                   = function getNotes() {
+      return this.notes.slice(0);
+   };
+
+   /**
     * Return the result of the test.
     * Do not take care of the timeout of the function nor the child tests
     *
@@ -1552,6 +1628,14 @@ This software include the following third-party programs :
     */
    TestUnit.prototype.getTitle                   = function getTitle() {
       return this.title;
+   };
+
+   /**
+    *
+    * @returns {Array.<string>}
+    */
+   TestUnit.prototype.getToDoList                = function getToDoList() {
+      return this.toDoList.slice(0);
    };
 
    /**
@@ -1743,6 +1827,23 @@ This software include the following third-party programs :
    };
 
    /**
+    * Invert the sens of the test
+    * @returns {TestUnit}
+    */
+   TestUnit.prototype.not                        = function not() {
+      this.notMode = true;
+      return this;
+   };
+
+   /**
+    *
+    * @param {string} note
+    */
+   TestUnit.prototype.note                       = function note(note) {
+      this.notes.push(note);
+   };
+
+   /**
     * Count the number of fails, successes and total testes.
     * @param {number} [deltaErrors]
     * @param {number} [deltaFails]
@@ -1843,6 +1944,11 @@ This software include the following third-party programs :
       this.domTest = dom;
    };
 
+   TestUnit.prototype.todo                       = function todo(text) {
+      this.toDoList.push(text);
+      return this;
+   };
+
    /**
     *
     * @returns {string}
@@ -1877,11 +1983,12 @@ This software include the following third-party programs :
          title = param1;
          testFunction = param2;
          then = new TestUnit({ async        : this.async
+                             , context      : this.childContext
                              , enabled      : this.enabled
                              , parent       : this
                              , promiseRole  : 'then'
-                             , testFunction : testFunction
-                             , title        : title});
+                             , title        : title
+                             , value        : testFunction});
 
          this.nexts.push(then);
       }
@@ -2489,17 +2596,20 @@ This software include the following third-party programs :
 
       return { async          : this.test.async
              , collapsed      : this.collapsed
+             , comments       : this.test.getComments()
              , description    : this.test.getDescription()
              , duration       : duration
              , endTime        : common.time2string(endTime)
              , isGroup        : this.test.isGroup()
              , lang           : lang.test
+             , notes          : this.test.getNotes()
              , result         : this.test.getResult()
              , severalFails   : fails > 1
              , startTime      : common.time2string(startTime)
              , strict         : this.test.strictMode
              , success        : this.test.isSuccessful()
              , title          : this.test.getTitle()
+             , toDoList       : this.test.getToDoList()
              , totalFails     : fails
              , totalSuccesses : this.test.countSuccessfulTests()
              , totalTests     : this.test.countTotalTests()};
@@ -2592,6 +2702,9 @@ This software include the following third-party programs :
                +        '<div id="successes">{{totalSuccesses}}</div>'
                +        '<div id="countTests">{{totalTests}}</div>'
                +        '<div id="successesByTests">{{totalSuccesses}}/{{totalTests}}</div>'
+               +        '{{#toDoList}}<div class="todo">{{.}}</div>{{/toDoList}}'
+               +        '{{#comments}}<div class="comment">{{.}}</div>{{/comments}}'
+               +        '{{#notes}}<div class="note">{{.}}</div>{{/notes}}'
                +     '</header>'
                +     '<div id="tests"></div>'
                +     '<div id="nexts"></div>'
@@ -2628,29 +2741,21 @@ This software include the following third-party programs :
     */
    var DOMSection                                = function DOMSection(section) {
       DOMTest.call(this, section);
+      this.section = section;
    };
 
    /**
     * Build the DOM of the section
     */
    DOMSection.prototype.buildDOM                 = function buildDOM(collapsed) {
-      var /** @type {Object}      */ data
-        , /** @type {HTMLElement} */ domSection
-        , /** @type {HTMLElement} */ domTestUnit
-        , /** @type {number}      */ t;
+      DOMTest.prototype.buildDOM.call(this, collapsed);
+   };
 
-      this.collapsed = collapsed;
-      data           = this.getTemplateData();
-      this.dom       = common.render2dom(this.getTemplate(), data);
-      domSection     = this.dom.querySelector('div#tests');
-
-      if (this.collapsed)
-         return;
-
-      for (t in this.testUnits) {
-         domTestUnit = this.testUnits[t].getDOM();
-         domSection.appendChild(domTestUnit);
-      }
+   /**
+    *
+    */
+   DOMSection.prototype.destroy                  = function destroy() {
+      DOMTest.prototype.destroy.apply(this, arguments);
    };
 
    /**
@@ -2678,6 +2783,20 @@ This software include the following third-party programs :
    };
 
    /**
+    * Return the DOM of the template
+    * @param {boolean} [collapsed=false]
+    * @returns {HTMLElement}
+    */
+   DOMSection.prototype.getDOM                   = function getDOM(collapsed) {
+      collapsed = collapsed === undefined ? this.collapsed : !!collapsed;
+
+      if (this.dom === undefined || collapsed !== this.collapsed)
+         this.buildDOM(collapsed);
+
+      return this.dom;
+   };
+
+   /**
     *
     * @returns {Object}
     */
@@ -2693,17 +2812,17 @@ This software include the following third-party programs :
       if (endTime !== undefined)
          duration = endTime - startTime;
 
-      return { collapsed   : this.collapsed
-             , countFail   : this.section.countFailedTests()
-             , countSuccess: this.section.countSuccessfulTests()
-             , countTotal  : this.section.countTotalTests()
-             , description : this.section.getDescription()
-             , duration    : duration
-             , endTime     : common.time2string(endTime)
-             , lang        : lang.section
-             , startTime   : common.time2string(startTime)
-             , success     : this.section.isSuccessful()
-             , title       : this.section.getTitle()};
+      return { collapsed      : this.collapsed
+             , totalFails     : this.section.countFailedTests()
+             , totalSuccesses : this.section.countSuccessfulTests()
+             , totalTests     : this.section.countTotalTests()
+             , description    : this.section.getDescription()
+             , duration       : duration
+             , endTime        : common.time2string(endTime)
+             , lang           : lang.section
+             , startTime      : common.time2string(startTime)
+             , success        : this.section.isSuccessful()
+             , title          : this.section.getTitle()};
    };
 
    /**
@@ -2736,23 +2855,19 @@ This software include the following third-party programs :
     * @returns {string}
     */
    DOMSection.prototype.getTemplate              = function getTemplate() {
-      return      '<div class="section {{#success}}pass{{/success}}{{^success}}fail{{/success}} {{#collapsed}}collapsed{{/collapsed}}">'
+      return      '<div class="test group {{#success}}pass{{/success}}{{^success}}fail{{/success}} {{#collapsed}}collapsed{{/collapsed}} {{#severalFails}}severalFails{{/severalFails}}">'
                +     '<header>'
-               +        '<h1>{{title}}</h1>'
-               +        '{{#description}}<p>{{description}}</p>{{/description}}'
+               +        '<div id="title">{{title}}</div>'
+               +        '<div id="description">{{description}}</div>'
+               +        '<div id="fails">{{totalFails}}</div>'
+               +        '<div id="successes">{{totalSuccesses}}</div>'
+               +        '<div id="countTests">{{totalTests}}</div>'
+               +        '<div id="successesByTests">{{totalSuccesses}}/{{totalTests}}</div>'
+               +        '{{#toDoList}}<div class="todo">{{.}}</div>{{/toDoList}}'
+               +        '{{#comments}}<div class="comment">{{.}}</div>{{/comments}}'
                +     '</header>'
-               +     '<section id="summary">'
-               +        '<dl>'
-               +           '<dt id="startDate">{{lang.startDate}}</dt><dd id="startDate">{{startTime}}</dd>'
-               +           '<dt id="endDate">{{lang.endDate}}</dt><dd id="endDate">{{endTime}}</dd>'
-               +           '<dt id="duration">{{lang.duration}}</dt><dd id="duration">{{duration}} {{lang.second}}</dd>'
-               +           '<dt id="countTotal">{{lang.countTotal}}</dt><dd id="countTotal">{{countTotal}}</dd>'
-               +           '<dt id="countSuccess">{{lang.countSuccess}}</dt><dd id="countSuccess">{{countSuccess}}</dd>'
-               +           '<dt id="countFail">{{lang.countFail}}</dt><dd id="countFail">{{countFail}}</dd>'
-               +        '</dl>'
-               +     '</section>'
-               +     '<div id="tests">'
-               +     '</div>'
+               +     '<div id="tests"></div>'
+               +     '<div id="nexts"></div>'
                + '</div>';
    };
 

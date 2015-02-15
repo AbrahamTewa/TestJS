@@ -243,11 +243,26 @@ body {
   .testJS .test, .testJS .section, .testJS .project {
     border-top: solid 1px grey;
     border-left: solid 1px #e2e2e2;
-    padding-left: 0.3em; }
+    padding-left: 0.3em;
+    margin-left: 15px;
+    overflow: hidden; }
+    .testJS .test.collapsed > header > #description
+    , .testJS .test.collapsed > header > .todo
+    , .testJS .test.collapsed > header > .note
+    , .testJS .test.collapsed > header > .comment, .testJS .section.collapsed > header > #description
+    , .testJS .section.collapsed > header > .todo
+    , .testJS .section.collapsed > header > .note
+    , .testJS .section.collapsed > header > .comment, .testJS .project.collapsed > header > #description
+    , .testJS .project.collapsed > header > .todo
+    , .testJS .project.collapsed > header > .note
+    , .testJS .project.collapsed > header > .comment {
+      display: none; }
     .testJS .test:before, .testJS .section:before, .testJS .project:before {
       display: none !important; }
     .testJS .test > header, .testJS .section > header, .testJS .project > header {
+      margin-bottom: 5px;
       display: flex;
+      flex-wrap: wrap;
       flex-direction: row; }
       .testJS .test > header:before, .testJS .section > header:before, .testJS .project > header:before {
         width: 1em; }
@@ -258,6 +273,79 @@ body {
       .testJS .test > header > #fails, .testJS .section > header > #fails, .testJS .project > header > #fails {
         order: 0;
         width: 3em; }
+      .testJS .test > header > #description
+      , .testJS .test > header > .todo
+      , .testJS .test > header > .note
+      , .testJS .test > header > .comment, .testJS .section > header > #description
+      , .testJS .section > header > .todo
+      , .testJS .section > header > .note
+      , .testJS .section > header > .comment, .testJS .project > header > #description
+      , .testJS .project > header > .todo
+      , .testJS .project > header > .note
+      , .testJS .project > header > .comment {
+        margin-left: 30px;
+        border: solid 1px #d0d0d0;
+        background-color: white;
+        margin-bottom: 1px;
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        color: #333333;
+        font-size: 0.8em; }
+        .testJS .test > header > #description
+        > li, .testJS .test > header > .todo
+        > li, .testJS .test > header > .note
+        > li, .testJS .test > header > .comment > li, .testJS .section > header > #description
+        > li, .testJS .section > header > .todo
+        > li, .testJS .section > header > .note
+        > li, .testJS .section > header > .comment > li, .testJS .project > header > #description
+        > li, .testJS .project > header > .todo
+        > li, .testJS .project > header > .note
+        > li, .testJS .project > header > .comment > li {
+          width: calc(100% - 5em); }
+        .testJS .test > header > #description:before
+        , .testJS .test > header > .todo:before
+        , .testJS .test > header > .note:before
+        , .testJS .test > header > .comment:before, .testJS .section > header > #description:before
+        , .testJS .section > header > .todo:before
+        , .testJS .section > header > .note:before
+        , .testJS .section > header > .comment:before, .testJS .project > header > #description:before
+        , .testJS .project > header > .todo:before
+        , .testJS .project > header > .note:before
+        , .testJS .project > header > .comment:before {
+          border-right: solid 1px #d0d0d0;
+          padding-left: 5px;
+          width: 5em;
+          margin-right: 8px;
+          padding-right: 8px; }
+      .testJS .test > header > #description, .testJS .section > header > #description, .testJS .project > header > #description {
+        order: 6; }
+        .testJS .test > header > #description:before, .testJS .section > header > #description:before, .testJS .project > header > #description:before {
+          background-color: #dff0d8;
+          content: 'Description'; }
+        .testJS .test > header > #description:empty, .testJS .section > header > #description:empty, .testJS .project > header > #description:empty {
+          display: none; }
+      .testJS .test > header > .comment, .testJS .section > header > .comment, .testJS .project > header > .comment {
+        order: 7; }
+        .testJS .test > header > .comment:before, .testJS .section > header > .comment:before, .testJS .project > header > .comment:before {
+          background-color: #d9edf7;
+          content: 'Comment'; }
+        .testJS .test > header > .comment:empty, .testJS .section > header > .comment:empty, .testJS .project > header > .comment:empty {
+          display: none; }
+      .testJS .test > header > .todo, .testJS .section > header > .todo, .testJS .project > header > .todo {
+        order: 8; }
+        .testJS .test > header > .todo:before, .testJS .section > header > .todo:before, .testJS .project > header > .todo:before {
+          background-color: #f2dede;
+          content: 'To Do'; }
+        .testJS .test > header > .todo:empty, .testJS .section > header > .todo:empty, .testJS .project > header > .todo:empty {
+          display: none; }
+      .testJS .test > header > .note, .testJS .section > header > .note, .testJS .project > header > .note {
+        order: 9; }
+        .testJS .test > header > .note:before, .testJS .section > header > .note:before, .testJS .project > header > .note:before {
+          background-color: #fcf8e3;
+          content: 'Note'; }
+        .testJS .test > header > .note:empty, .testJS .section > header > .note:empty, .testJS .project > header > .note:empty {
+          display: none; }
       .testJS .test > header > #title, .testJS .section > header > #title, .testJS .project > header > #title {
         order: 1; }
       .testJS .test > header > #successesByTests, .testJS .section > header > #successesByTests, .testJS .project > header > #successesByTests {
@@ -273,25 +361,39 @@ body {
         visibility: hidden; }
       .testJS .test.pass > header:before, .testJS .section.pass > header:before, .testJS .project.pass > header:before {
         content: "\2713";
-        color: #00d6b2; }
+        color: #00d6b2;
+        width: 1em; }
     .testJS .test.fail > header:before, .testJS .section.fail > header:before, .testJS .project.fail > header:before {
-      content: "\2716"; }
+      content: "\2716";
+      width: 1em; }
     .testJS .test.fail > header:before, .testJS .test.fail > header > #fails, .testJS .section.fail > header:before, .testJS .section.fail > header > #fails, .testJS .project.fail > header:before, .testJS .project.fail > header > #fails {
       color: #c00; }
-    .testJS .test:not(.group) > header > #successesByTests
-    , .testJS .test:not(.group) > header:not(.severalFails) > #fails, .testJS .section:not(.group) > header > #successesByTests
-    , .testJS .section:not(.group) > header:not(.severalFails) > #fails, .testJS .project:not(.group) > header > #successesByTests
-    , .testJS .project:not(.group) > header:not(.severalFails) > #fails {
-      visibility: hidden; }
-    .testJS .test:not(.group), .testJS .section:not(.group), .testJS .project:not(.group) {
+    .testJS .test:not(.group):not(.section), .testJS .section:not(.group):not(.section), .testJS .project:not(.group):not(.section) {
       cursor: auto; }
-    .testJS .test.group, .testJS .section.group, .testJS .project.group {
+      .testJS .test:not(.group):not(.section) > header > #successesByTests
+      , .testJS .test:not(.group):not(.section) > header:not(.severalFails) > #fails, .testJS .section:not(.group):not(.section) > header > #successesByTests
+      , .testJS .section:not(.group):not(.section) > header:not(.severalFails) > #fails, .testJS .project:not(.group):not(.section) > header > #successesByTests
+      , .testJS .project:not(.group):not(.section) > header:not(.severalFails) > #fails {
+        visibility: hidden; }
+    .testJS .test.group
+    , .testJS .test.section, .testJS .section.group
+    , .testJS .section.section, .testJS .project.group
+    , .testJS .project.section {
       cursor: pointer; }
-      .testJS .test.group > header > #successesByTests, .testJS .section.group > header > #successesByTests, .testJS .project.group > header > #successesByTests {
+      .testJS .test.group
+      > header > #successesByTests, .testJS .test.section > header > #successesByTests, .testJS .section.group
+      > header > #successesByTests, .testJS .section.section > header > #successesByTests, .testJS .project.group
+      > header > #successesByTests, .testJS .project.section > header > #successesByTests {
         font-weight: bold; }
-      .testJS .test.group.pass > header:hover, .testJS .section.group.pass > header:hover, .testJS .project.group.pass > header:hover {
+      .testJS .test.group.pass
+      > header:hover, .testJS .test.section.pass > header:hover, .testJS .section.group.pass
+      > header:hover, .testJS .section.section.pass > header:hover, .testJS .project.group.pass
+      > header:hover, .testJS .project.section.pass > header:hover {
         background-color: #c9ffc9; }
-      .testJS .test.group.fail > header:hover, .testJS .section.group.fail > header:hover, .testJS .project.group.fail > header:hover {
+      .testJS .test.group.fail
+      > header:hover, .testJS .test.section.fail > header:hover, .testJS .section.group.fail
+      > header:hover, .testJS .section.section.fail > header:hover, .testJS .project.group.fail
+      > header:hover, .testJS .project.section.fail > header:hover {
         background-color: #ffcbcb; }
 
-/*# sourceMappingURL=test.css.map */
+/*# sourceMappingURL=testJS.css.map */
