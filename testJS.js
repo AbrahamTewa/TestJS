@@ -43,6 +43,8 @@ This software include the following third-party programs :
 
  */
 
+// v0.1.2
+
 /**
  *
  * Example :
@@ -305,7 +307,7 @@ This software include the following third-party programs :
          return test;
       });
 
-      if (this.asyncTests !== undefined && this.asyncTests === false) {
+      if (this.asyncTests === false) {
          if (test.hasAsyncTests()) {
             this.asyncTests = true;
 
@@ -318,6 +320,9 @@ This software include the following third-party programs :
             }
          }
       }
+
+      // Updating section by adding tests counts
+      this.refresh();
    };
 
    /**
@@ -775,18 +780,19 @@ This software include the following third-party programs :
                               , test    : test
                               , project : test.getProject()}};
 
-         testContext            = TestContext.bind(thisObject);
-         testContext.console    = console.bind(thisObject);
-         testContext.comment    = comment.bind(thisObject);
-         testContext.describe   = describe.bind(thisObject);
-         testContext.disable    = disable.bind(thisObject);
-         testContext.display    = display.bind(thisObject);
-         testContext.done       = done.bind(thisObject);
-         testContext.getData    = getData.bind(thisObject);
-         testContext.note       = note.bind(thisObject);
-         testContext.reset      = reset.bind(thisObject);
-         testContext.todo       = todo.bind(thisObject);
-         testContext._info      = getInfo.bind(thisObject);
+         testContext              = TestContext.bind(thisObject);
+         testContext.console      = console.bind(thisObject);
+         testContext.comment      = comment.bind(thisObject);
+         testContext.describe     = describe.bind(thisObject);
+         testContext.disable      = disable.bind(thisObject);
+         testContext.display      = display.bind(thisObject);
+         testContext.done         = done.bind(thisObject);
+         testContext.getData      = getData.bind(thisObject);
+         testContext.note         = note.bind(thisObject);
+         testContext.constructors = {Test: TestUnit};
+         testContext.reset        = reset.bind(thisObject);
+         testContext.todo         = todo.bind(thisObject);
+         testContext._info        = getInfo.bind(thisObject);
 
          Object.defineProperties(testContext, { async   : {get : async.bind(thisObject)}
                                               , delay   : {get : delay.bind(thisObject)}
@@ -997,7 +1003,7 @@ This software include the following third-party programs :
     * @property {number}              executionDelay
     * @property {TestUnit|Section}    parent
     * @property {Project}             project
-    * @property {string}              promiseRole
+    * @property {string|undefined}    promiseRole
     * @property {boolean}             strict
     * @property {TestContext}         testFunction
     * @property {string}              title
@@ -1065,7 +1071,7 @@ This software include the following third-party programs :
 
       this.notes          = [];
 
-      this.async          = param.async || this.executionDelay !== false || this.value instanceof Promise;
+      this.async          = param.async || this.executionDelay !== false || this.value instanceof Promise || this.value instanceof TestUnit;
 
       this._isClosed      = false;
 
@@ -1167,7 +1173,7 @@ This software include the following third-party programs :
 
          title        = param1;
 
-         if (param2 instanceof Promise) {
+         if (param2 instanceof Promise || param2 instanceof TestUnit) {
             value = new Promise(function(fullfill) {
                this.results.error = false;
                this.refresh();
@@ -1346,7 +1352,7 @@ This software include the following third-party programs :
 
       if (this.async) {
 
-         if (this.value instanceof Promise) {
+         if (this.value instanceof Promise || this.value instanceof TestUnit) {
             promise = this.value.then(function(value) {
                return value;
             });
@@ -1364,7 +1370,7 @@ This software include the following third-party programs :
 
          }
          else if (this.promiseRole === undefined) {
-            promise = this.getPromise().then(function(value) {
+            promise = Promise.resolve().then(function(value) {
                return this.testExecution.execute(value);
             }.bind(this));
          }
@@ -1532,7 +1538,9 @@ This software include the following third-party programs :
     */
    TestUnit.prototype.getPromise                 = function getPromise() {
       if (this.promise === undefined)
-         this.promise = promiseResolved;
+         this.promise = new Promise(function(fullfill) {
+            fullfill(this.value);
+         }.bind(this));
 
       return this.promise;
    };
@@ -1581,10 +1589,7 @@ This software include the following third-party programs :
       if (this.results.error    === true)
          return false;
 
-      if (this.results.timeout  === false)
-         return false;
-
-      return true;
+      return this.results.timeout !== false;
    };
 
    /**
@@ -1809,7 +1814,7 @@ This software include the following third-party programs :
          return true;
 
       //noinspection RedundantConditionalExpressionJS
-      return this.value !== undefined && !(this.value instanceof Promise) ? true : false;
+      return this.value !== undefined && !(this.value instanceof Promise || this.value instanceof TestUnit) ? true : false;
    };
 
    /**
@@ -1866,8 +1871,14 @@ This software include the following third-party programs :
          this.results.count.fails       += deltaFails;
          this.results.count.successes   += deltaSuccesses;
          this.results.count.total       += deltaTotal;
+         this.results.count.isValid      = this.isValid();
       }
       else {
+
+         // Calculating validity only if the test was previously invalid
+         // Note : a valid test can't become invalid (because a invalid test is basically a test without results nor sub tests).
+         if (!this.results.validity)
+            this.results.validity = this.isValid();
 
          // Errors
          errors = this.results.error ? 1 : 0;
@@ -1875,7 +1886,7 @@ This software include the following third-party programs :
          // Fails
          fails  = this.isUnitTest() && !this.results.test ? 1 : 0;
          fails += this.results.error ? 1 : 0;
-         fails += !this.isValid() ? 1 : 0;
+         fails += !this.results.validity ? 1 : 0;
 
          hasFinishedInTime = this.hasFinishedInTime();
 
@@ -1944,19 +1955,6 @@ This software include the following third-party programs :
       this.domTest = dom;
    };
 
-   TestUnit.prototype.todo                       = function todo(text) {
-      this.toDoList.push(text);
-      return this;
-   };
-
-   /**
-    *
-    * @returns {string}
-    */
-   TestUnit.prototype.toString                   = function toString() {
-      return this.title + ' : ' + (this.isSuccessful() ? 'success' : 'fail') + ' (' + this.countSuccessfulTests() + '/' + this.countTotalTests() + ')';
-   };
-
    /**
     *
     * Function to execute after the test.
@@ -1982,15 +1980,19 @@ This software include the following third-party programs :
       if (typeof(param1) === 'string') {
          title = param1;
          testFunction = param2;
-         then = new TestUnit({ async        : this.async
-                             , context      : this.childContext
-                             , enabled      : this.enabled
-                             , parent       : this
-                             , promiseRole  : 'then'
-                             , title        : title
-                             , value        : testFunction});
+         then = new TestUnit({ async          : true
+                             , context        : this.childContext
+                             , enabled        : this.enabled
+                             , executionDelay : false
+                             , strict         : this.strictMode
+                             , parent         : this
+                             , project        : this.getProject()
+                             , promiseRole    : 'then'
+                             , title          : title
+                             , value          : testFunction});
 
          this.nexts.push(then);
+         this.refresh();
       }
       else
          then = this.getPromise().then(param1);
@@ -1998,7 +2000,18 @@ This software include the following third-party programs :
       return then;
    };
 
+   TestUnit.prototype.todo                       = function todo(text) {
+      this.toDoList.push(text);
+      return this;
+   };
 
+   /**
+    *
+    * @returns {string}
+    */
+   TestUnit.prototype.toString                   = function toString() {
+      return this.title + ' : ' + (this.isSuccessful() ? 'success' : 'fail') + ' (' + this.countSuccessfulTests() + '/' + this.countTotalTests() + ')';
+   };
 
    // Unit Tests
 
@@ -2401,7 +2414,7 @@ This software include the following third-party programs :
          this.error      = err;
       }
 
-      if (this.result instanceof Promise) {
+      if (this.result instanceof Promise || this.result instanceof TestUnit) {
          this.result.then(function(result) {
             // Note : endDate could be already defined if the "done" function has been triggered
             this.endDate = this.endDate === undefined ? new Date() : this.endDate;
@@ -2472,8 +2485,9 @@ This software include the following third-party programs :
     * @param {TestUnit} test
     * @constructor
     * @class DOMTest
-    * @property {TestUnit} test
+    * @property {TestUnit}                   test
     * @property {Array.<DOMTest|DOMSection>} childTests
+    * @property {DOMTest[]}                  promiseTests
     */
    var DOMTest                                   = function DOMTest(test) {
       this.test         = test;
@@ -2485,7 +2499,7 @@ This software include the following third-party programs :
    /**
     * Build the dom of the test
     */
-   DOMTest.prototype.buildDOM                    = function builDOM(collapsed) {
+   DOMTest.prototype.buildDOM                    = function buildDOM(collapsed) {
 
       var /** @type {number}      */ c
         , /** @type {Object}      */ data
@@ -2525,12 +2539,22 @@ This software include the following third-party programs :
          }
       }
       else {
+         // Tests
          domTests = this.dom.querySelector('div#tests');
 
          this.childTests = this.getChildTests();
 
          for (t in this.childTests) {
             domTests.appendChild(this.childTests[t].getDOM());
+         }
+
+         // Promises tests
+         domTests = this.dom.querySelector('div#promises');
+
+         this.promiseTests = this.getPromiseTests();
+
+         for (t in this.promiseTests) {
+            domTests.appendChild(this.promiseTests[t].getDOM());
          }
       }
 
@@ -2660,6 +2684,25 @@ This software include the following third-party programs :
 
    /**
     *
+    */
+   DOMTest.prototype.getPromiseTests             = function getPromiseTests() {
+      var /** @type {DOMTest[]}  */ domTests
+        , /** @type {number}     */ t
+        , /** @type {TestUnit[]} */ tests;
+
+      domTests = [];
+
+      tests = this.test.getNexts();
+
+      for (t in tests) {
+         domTests.push(new DOMTest(tests[t]));
+      }
+
+      return domTests;
+   };
+
+   /**
+    *
     * Lang values :
     *    - startDate
     *    - endDate
@@ -2707,7 +2750,7 @@ This software include the following third-party programs :
                +        '{{#notes}}<div class="note">{{.}}</div>{{/notes}}'
                +     '</header>'
                +     '<div id="tests"></div>'
-               +     '<div id="nexts"></div>'
+               +     '<div id="promises"></div>'
                +  '</div>';
 
    };
@@ -2892,6 +2935,10 @@ This software include the following third-party programs :
    //noinspection JSUnusedGlobalSymbols
    DOMProject.prototype.constructor              = DOMProject;
 
+   /**
+    * Build the DOM of the project.
+    * @param {boolean} collapsed If true, then all tests will be collapsed.
+    */
    DOMProject.prototype.buildDOM                 = function buildDOM(collapsed) {
 
       this.globalDOM = document.createElement('div');

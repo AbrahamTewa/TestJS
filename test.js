@@ -23,14 +23,24 @@ function testAll() {
 
    test('failed group', function() {
 
+      var testPromise;
+
       test('successful test', true);
       test('failed test'    , false);
+
+      test('successful group', function() {}).then('successful test', function() {return true});
+
+      testPromise = test('failed group', function() {});
+
+      testPromise.then('successful test', function() {return true});
+      testPromise.then('failed test', function() {return false});
 
       test('successful group', function() {
          test('successful test', true);
       });
 
    });
+
 
    test('tests', function() {
       test('unitTest', function() {
@@ -1229,6 +1239,27 @@ function testAll() {
 
          });
 
+         test('then', function() {
+
+            var thenResults, token;
+
+            thenResults = {};
+            testAll['API']['then'] = thenResults;
+
+            token = {};
+
+            // Async tests
+            token['async test'] = 0;
+
+            thenResults['async test'] = test('async test', function() {
+            }).then('result', function(test) {
+               return token['async test'] === 1;
+            });
+
+            token['async test'] = 1;
+
+         });
+
       });
    });
 
@@ -1329,7 +1360,7 @@ test('TestJS handle promises', new Promise(function(fullfill) {
       var r;
 
       for(r in results) {
-         if (typeof(results[r]) === 'object' && !(results[r] instanceof Promise)) {
+         if (typeof(results[r]) === 'object' && !(results[r] instanceof Promise || results[r] instanceof test.constructors.Test)) {
 
             test(r, function() {
                checkResults(results[this.r]);
@@ -1346,7 +1377,7 @@ test('TestJS handle promises', new Promise(function(fullfill) {
    }).describe('This section is the results of all the tests : It should be successful');
 
    resultTest.todo('Test');
-   resultTest.todo('A nother test');
+   resultTest.todo('Another test');
    resultTest.comment('A comment');
 
    console.log(test.getData());
