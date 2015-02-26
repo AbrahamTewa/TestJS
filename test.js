@@ -1330,7 +1330,7 @@ test.async('"test" implement the Promise interface', function(test) {
     console.log('This function will return a regular Promise');
 });
 
-test.async('You can also continue testing inside the "then" function', function() {
+test.async('You can also continue testing inside the "then" function', function(test) {
     test('But for that, you should provide a string as first argument and a function as second', 'test').contains('s');
     return 5
 }).then('The string will be used as the title of the test', function(test, value) {

@@ -303,9 +303,9 @@ This software include the following third-party programs :
 
       this.tests.push(test);
 
-      this.then(function() {
+      /*this.then(function() {
          return test;
-      });
+      });*/
 
       if (this.asyncTests === false) {
          if (test.hasAsyncTests()) {
@@ -1029,12 +1029,14 @@ This software include the following third-party programs :
     * @property {boolean}           durationResult
     * @property {boolean}           enabled
     * @property {boolean}           errorExpected
+    * @property {function}          fullfillPromise      - Fullfill function of the test promise : it will be executed by the fullfillTest function
     * @property {TestUnit[]}        nexts                - Test executed right after this one, using the then/catch function
     * @property {boolean}           notMode
     * @property {TestUnit|Section}  parent
     * @property {Project}           project
     * @property {Promise}           promise
     * @property {string|undefined}  promiseRole
+    * @property {function}          rejectPromise        - Reject function of the test promise : it will be executed by the reject test function
     * @property {boolean}           result
     * @property {Section[]}         sections
     * @property {boolean}           strictMode
@@ -1068,6 +1070,11 @@ This software include the following third-party programs :
       this.executionDelay = param.executionDelay;
       this.errorExpected  = false;
       this.toDoList       = [];
+
+      this.promise        = new Promise(function(fullfill, reject) {
+         this.fullfillPromise = fullfill;
+         this.rejectPromise   = reject;
+      }.bind(this));
 
       this.notes          = [];
 
@@ -1342,62 +1349,127 @@ This software include the following third-party programs :
 
    /**
     * Execute the unit test
+    * TODO : This function could by simplify
     *
     */
    TestUnit.prototype.execute                    = function execute() {
-      var /** @type {Promise} */ promise;
+      var /** @type {function} */ fullfillFunction
+        , /** @type {Promise}  */ promise
+        , /** @type {function} */ rejectFunction;
 
       if (!this.enabled)
          return;
 
-      if (this.async) {
+      if (this.async || this.value instanceof Promise) {
 
-         if (this.value instanceof Promise || this.value instanceof TestUnit) {
-            promise = this.value.then(function(value) {
-               return value;
-            });
+         // The value was a promise
+         if (this.value instanceof Promise) {
+            promise = this.value;
          }
+
+         // Test using the "delay" function
          else if (this.executionDelay !== false) {
-            promise = this.parent.getPromise().then(function(value) {
-               return new Promise(function(fullfill) {
 
-                  setTimeout(function() {
-                     fullfill(this.testExecution.execute(value));
-                  }.bind(this), this.executionDelay);
+            promise = new Promise(function(fullfill, reject) {
+               fullfillFunction = fullfill;
+               rejectFunction   = reject;
+            });
 
-               }.bind(this));
-            }.bind(this));
+            setTimeout(function() {
+               try {
+                  fullfillFunction(this.testExecution.execute(value));
+               }
+               catch (err) {
+                  rejectFunction(err);
+               }
+            }.bind(this), this.executionDelay);
 
          }
+
+         // Standard "async" call
          else if (this.promiseRole === undefined) {
+
             promise = Promise.resolve().then(function(value) {
                return this.testExecution.execute(value);
             }.bind(this));
+
          }
+
+         // Test call by a "then" function
          else if (this.promiseRole === 'then')
+
             promise = this.parent.getPromise().then(function(value) {
                return this.testExecution.execute(value);
             }.bind(this));
-         else  // promiseRole = 'catch'
+
+         // Test call by a "catch" function
+         else
             promise = this.parent.getPromise().catch(function(value) {
                return this.testExecution.execute(value);
             }.bind(this));
 
-         this.promise = promise.then(function(value) {
-            this.value = value;
-            this.calcResult();
-         }.bind(this)).catch(function(error) {
-            this.error = error;
-            this.results.error = true;
-         }.bind(this));
-
       }
       else if (this.testFunction) {
          this.value = this.testExecution.execute();
-         this.calcResult();
+
+         if (this.value instanceof Promise)
+            promise = this.value;
       }
-      else
-         this.calcResult();
+
+      if (promise !== undefined) {
+
+         promise.then(function(value) {
+            this.complete(false, value);
+         }.bind(this));
+
+         promise.catch(function(error) {
+            this.complete(true, error);
+         }.bind(this));
+
+      }
+
+      this.complete(false, this.value);
+   };
+
+   /**
+    *
+    * @param {boolean} isError
+    * @param {*}       value
+    */
+   TestUnit.prototype.complete                   = function complete(isError, value) {
+
+      isError = false;
+
+      if (!isError && this.testExecution) {
+         isError   = this.testExecution.throwError;
+
+         if (isError)
+            value = this.testExecution.error;
+      }
+
+      if (isError) {
+
+         this.error         = value;
+         this.results.error = true;
+
+         this.rejectPromise(this.error);
+      }
+      else {
+         this.value = value;
+
+         try {
+            this.calcResult();
+            this.fullfillPromise(this.value);
+         }
+         catch(value) {
+            this.error = value;
+            this.results.error = true;
+            this.rejectPromise(this.error);
+         }
+
+      }
+
+      this.refresh()
    };
 
    /**
@@ -2394,7 +2466,7 @@ This software include the following third-party programs :
       // Building parameters for the function :
       // The first parameter is the "test" function
       // The second parameter is the first argument provided to the execute function.
-      params = [this.test.childContext.test];
+      params = [this.test.childContext];
 
       if (arguments.length === 1)
          params.push(arguments[0]);
@@ -2414,7 +2486,7 @@ This software include the following third-party programs :
          this.error      = err;
       }
 
-      if (this.result instanceof Promise || this.result instanceof TestUnit) {
+      if (this.result instanceof Promise) {
          this.result.then(function(result) {
             // Note : endDate could be already defined if the "done" function has been triggered
             this.endDate = this.endDate === undefined ? new Date() : this.endDate;
