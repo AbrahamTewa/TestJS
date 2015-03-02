@@ -1,0 +1,265 @@
+@import "mocha";
+
+.testJS {
+
+   @extend #mocha;
+
+   line-height: 24px;
+
+   font-size: 16px;
+
+   // Test
+   .test, .section, .project {
+
+      $icon_width: 1em;
+      $nb_fails_width: 3em;
+
+      // Borders
+      border-top: solid 1px grey;
+      border-left: solid 1px rgb(226, 226, 226);
+      padding-left: 0.3em;
+      margin-left: 15px;
+      overflow: hidden;
+
+      &.collapsed {
+         & > header {
+
+              & > #description
+            , & > .todo
+            , & > .note
+            , & > .comment {
+               display: none;
+            }
+
+         }
+      }
+
+      &:before {
+         display: none !important;
+      }
+
+      & > header {
+         
+         // Box model
+         margin-bottom: 5px;
+         
+         // Flex
+         display: flex;
+         flex-wrap: wrap;
+         flex-direction: row;
+
+         &:before {
+            width: 1em;
+         }
+
+         & > #fails, &:before {
+            font-size: 12px;
+            display: block;
+            float: left;
+         }
+
+         & > #fails {
+            // Flex
+            order: 0;
+
+            // Size
+            width: $nb_fails_width;
+         }
+
+           & > #description
+         , & > .todo
+         , & > .note
+         , & > .comment {
+
+            // Box model
+            margin-left: 30px;
+            border: solid 1px rgb(208, 208, 208);
+            background-color: white;
+              margin-bottom: 1px;
+
+            // Flex
+            display: flex;
+            flex-wrap: wrap;
+
+            // Size
+            width: 100%;
+
+            // Text
+            color: #333333;
+            font-size: 0.8em;
+
+            & > li {
+               width: calc(100% - 5em);
+            }
+
+            &:before {
+               // Box model
+               border-right: solid 1px rgb(208, 208, 208);
+               padding-left: 5px;
+
+               // Size
+               width: 5em;
+
+               // Text
+               margin-right: 8px;
+               padding-right: 8px;
+            }
+
+         }
+
+         & > #description {
+
+            // Flex
+            order: 6;
+
+            &:before {
+
+               // Size
+               background-color: #dff0d8;
+
+               // Text
+               content: 'Description';
+            }
+
+            &:empty {
+               display: none;
+            }
+         }
+
+         & > .comment {
+            order: 7;
+
+            &:before {
+
+               background-color: #d9edf7;
+               content: 'Comment';
+            }
+
+            &:empty {
+               display: none;
+            }
+         }
+
+         & > .todo {
+            order: 8;
+
+            &:before {
+
+               background-color: #f2dede;
+               content: 'To Do';
+            }
+
+            &:empty {
+               display: none;
+            }
+         }
+
+         & > .note {
+            order: 9;
+
+            &:before {
+
+               background-color: #fcf8e3;
+               content: 'Note';
+            }
+
+            &:empty {
+               display: none;
+            }
+         }
+
+         & > #title {
+            // Flex
+            order: 1;
+         }
+
+         & > #successesByTests {
+            // Box model
+            margin-left: 1em;
+
+            // Flex
+            order: 2;
+
+            // Text
+            font-size: 0.7em;
+            color: rgb(152, 152, 152);
+         }
+
+
+         & > #countTests, & > #successes {
+            // Flex
+            display: none;
+         }
+
+      }
+
+      &.pass {
+
+         color: rgb(51, 51, 51);
+
+         & > header {
+            & > #fails {
+               visibility: hidden;
+            }
+
+            &:before {
+               content: "\2713";
+               color: #00d6b2;
+               width: $icon_width;
+            }
+
+         }
+      }
+
+      &.fail {
+         & > header {
+
+            &:before {
+               content: "\2716";
+               width: $icon_width;
+            }
+
+            &:before, & > #fails {
+               color: #c00;
+            }
+         }
+      }
+
+      &:not(.group):not(.section) {
+
+         cursor: auto;
+
+         & > header {
+              & > #successesByTests
+            , &:not(.severalFails) > #fails {
+               visibility: hidden;
+            }
+         }
+      }
+
+        &.group
+      , &.section {
+         cursor: pointer;
+
+         & > header {
+            & > #successesByTests {
+               font-weight: bold;
+            }
+         }
+
+         &.pass {
+            & > header:hover {
+               background-color: rgb(201, 255, 201);
+            }
+         }
+
+         &.fail {
+
+            & > header:hover {
+               background-color: rgb(255, 203, 203);
+            }
+         }
+
+      }
+   }
+}

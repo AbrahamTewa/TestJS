@@ -21,6 +21,58 @@ function testAll() {
    testAll['successful test'] = test('successful test', true).describe('This test should pass').getResult() === true;
    testAll['failed test']     = test('failed test', false).describe('This test should fail').getResult() === false;
 
+   test('successful group', function() {
+
+      var t, token;
+
+      test('successful test', true);
+
+      test('successful group', function() {
+         test('successful test', true);
+      });
+
+      t = test('successful test', function() {
+
+      });
+
+      t.describe('Empty test');
+
+      t.then('successful test', function(test, value) {
+         return value === undefined;
+      });
+
+      // Return value
+      token = {};
+
+      t = test('successful group', function() {
+         return token;
+      });
+
+      t.describe('Here, we test that the returned value is visible from the "then" test.');
+
+      t.then(function(test, value) {
+         return value === token;
+      });
+
+      t.then(function(test, value) {
+         return value === token;
+      });
+
+
+      // Delay
+
+      token = {};
+
+      t = test.delay('successful group', 10, function() {
+         return token;
+      });
+
+      t.then(function(test, value) {
+         return value === token;
+      });
+
+   });
+
    test('failed group', function() {
 
       var testPromise;
@@ -770,13 +822,15 @@ function testAll() {
          executedImmediately = false;
 
          tests.returnTrue = test.async('returnTrue', function() {
-            results.returnTrue.async = true;
+            executedImmediately = true;
             return true;
          });
 
-         results.returnTrue.result = tests.returnTrue.then(function() {
+         results.returnTrue.async = tests.returnTrue.then(function() {
+            executedImmediately = true;
             return tests.returnTrue.getResult() === true;
          });
+
 
          // Checking that the async code hasn't been executed immediately
          results.returnTrue.sync = executedImmediately === false;
@@ -790,7 +844,7 @@ function testAll() {
          tests.returnFalse = test.async('returnFalse', function() {
             results.returnFalse.async = true;
             return false;
-         });
+         }).equal(false);
 
          results.returnFalse.result = tests.returnTrue.then(function() {
             return tests.returnFalse.getResult() === false;
@@ -835,8 +889,8 @@ function testAll() {
             results = {};
             testAll.API.isSuccessful = results;
 
-            results.returnTrue  = test('return true', true).isSuccessful()   === true;
-            results.returnFalse = test('return false', false).isSuccessful() === false;
+            results.returnTrue  = test('return true', true).$.isSuccessful()   === true;
+            results.returnFalse = test('return false', false).$.isSuccessful() === false;
 
             test('groups', function() {
 
@@ -845,42 +899,42 @@ function testAll() {
                results['groups'] = {};
 
                title = 'invalid';
-               results['groups'][title] = test(title, function() {}).isSuccessful() === false;
+               results['groups'][title] = test(title, function() {}).$.isSuccessful() === false;
 
                title = 'no return - all test true';
                results['groups'][title] = test(title, function() {
                   test('return True', true);
-               }).isSuccessful() === true;
+               }).$.isSuccessful() === true;
 
                title = 'no return - all test false';
                results['groups'][title] = test(title, function() {
                   test('return False', false);
-               }).isSuccessful() === false;
+               }).$.isSuccessful() === false;
 
 
                title = 'return true - all test true';
                results['groups'][title] = test(true, function() {
                   test('return True', true);
                   return true;
-               }).isSuccessful() === true;
+               }).$.isSuccessful() === true;
 
                title = 'return false - all test true';
                results['groups'][title] = test(true, function() {
                   test('return True', true);
                   return false;
-               }).isSuccessful() === false;
+               }).$.isSuccessful() === false;
 
                title = 'return true - all test false';
                results['groups'][title] = test(true, function() {
                   test('return False', false);
                   return true;
-               }).isSuccessful() === false;
+               }).$.isSuccessful() === false;
 
                title = 'return false - all test false';
                results['groups'][title] = test(true, function() {
                   test('return False', false);
                   return false;
-               }).isSuccessful() === false;
+               }).$.isSuccessful() === false;
 
             });
 
@@ -894,8 +948,8 @@ function testAll() {
             results = {};
             testAll.API.count = results;
 
-            results.returnTrue  = test('return true', true).countFailedTests()   === 0;
-            results.returnFalse = test('return false', false).countFailedTests() === 1;
+            results.returnTrue  = test('return true', true).$.countFailedTests()   === 0;
+            results.returnFalse = test('return false', false).$.countFailedTests() === 1;
 
             check = function (resultGroup, title, nbTotal, nbSuccesses, nbFails, testFunction) {
 
@@ -909,10 +963,10 @@ function testAll() {
                   test('test', testFunction);
                });
 
-               localResults = { successful           : t.isSuccessful()         === (nbFails === 0)
-                              , countFailedTests     : t.countFailedTests()     === nbFails
-                              , countSuccessfulTests : t.countSuccessfulTests() === nbSuccesses
-                              , countTotalTests      : t.countTotalTests()      === nbTotal};
+               localResults = { successful           : t.$.isSuccessful()         === (nbFails === 0)
+                              , countFailedTests     : t.$.countFailedTests()     === nbFails
+                              , countSuccessfulTests : t.$.countSuccessfulTests() === nbSuccesses
+                              , countTotalTests      : t.$.countTotalTests()      === nbTotal};
 
                resultGroup[title]['x1'] = localResults;
 
@@ -924,10 +978,10 @@ function testAll() {
                   return true;
                });
 
-               localResults = { successful           : t.isSuccessful()         === (nbFails === 0)
-                              , countFailedTests     : t.countFailedTests()     === nbFails
-                              , countSuccessfulTests : t.countSuccessfulTests() === nbSuccesses + 1
-                              , countTotalTests      : t.countTotalTests()      === nbTotal +1};
+               localResults = { successful           : t.$.isSuccessful()         === (nbFails === 0)
+                              , countFailedTests     : t.$.countFailedTests()     === nbFails
+                              , countSuccessfulTests : t.$.countSuccessfulTests() === nbSuccesses + 1
+                              , countTotalTests      : t.$.countTotalTests()      === nbTotal +1};
 
                resultGroup[title]['x1 - return true'] = localResults;
 
@@ -939,10 +993,10 @@ function testAll() {
                   return false;
                });
 
-               localResults = { successful           : t.isSuccessful()         === false
-                              , countFailedTests     : t.countFailedTests()     === nbFails + 1
-                              , countSuccessfulTests : t.countSuccessfulTests() === nbSuccesses
-                              , countTotalTests      : t.countTotalTests()      === nbTotal + 1};
+               localResults = { successful           : t.$.isSuccessful()         === false
+                              , countFailedTests     : t.$.countFailedTests()     === nbFails + 1
+                              , countSuccessfulTests : t.$.countSuccessfulTests() === nbSuccesses
+                              , countTotalTests      : t.$.countTotalTests()      === nbTotal + 1};
 
                resultGroup[title]['x1 - return false'] = localResults;
 
@@ -953,10 +1007,10 @@ function testAll() {
                   test('3', testFunction);
                });
 
-               localResults = { successful           : t.isSuccessful()         === (nbFails === 0)
-                              , countFailedTests     : t.countFailedTests()     === nbFails     * 3
-                              , countSuccessfulTests : t.countSuccessfulTests() === nbSuccesses * 3
-                              , countTotalTests      : t.countTotalTests()      === nbTotal     * 3};
+               localResults = { successful           : t.$.isSuccessful()         === (nbFails === 0)
+                              , countFailedTests     : t.$.countFailedTests()     === nbFails     * 3
+                              , countSuccessfulTests : t.$.countSuccessfulTests() === nbSuccesses * 3
+                              , countTotalTests      : t.$.countTotalTests()      === nbTotal     * 3};
 
                resultGroup[title]['x3'] = localResults;
 
@@ -968,10 +1022,10 @@ function testAll() {
                   return true
                });
 
-               localResults = { successful           : t.isSuccessful()         === (nbFails === 0)
-                              , countFailedTests     : t.countFailedTests()     === nbFails * 3
-                              , countSuccessfulTests : t.countSuccessfulTests() === nbSuccesses * 3 + 1
-                              , countTotalTests      : t.countTotalTests()      === nbTotal * 3 + 1};
+               localResults = { successful           : t.$.isSuccessful()         === (nbFails === 0)
+                              , countFailedTests     : t.$.countFailedTests()     === nbFails * 3
+                              , countSuccessfulTests : t.$.countSuccessfulTests() === nbSuccesses * 3 + 1
+                              , countTotalTests      : t.$.countTotalTests()      === nbTotal * 3 + 1};
 
                resultGroup[title]['x3 return true'] = localResults;
 
@@ -983,10 +1037,10 @@ function testAll() {
                   return false
                });
 
-               localResults = { successful           : t.isSuccessful()         === false
-                              , countFailedTests     : t.countFailedTests()     === nbFails * 3 + 1
-                              , countSuccessfulTests : t.countSuccessfulTests() === nbSuccesses * 3
-                              , countTotalTests      : t.countTotalTests()      === nbTotal * 3 + 1};
+               localResults = { successful           : t.$.isSuccessful()         === false
+                              , countFailedTests     : t.$.countFailedTests()     === nbFails * 3 + 1
+                              , countSuccessfulTests : t.$.countSuccessfulTests() === nbSuccesses * 3
+                              , countTotalTests      : t.$.countTotalTests()      === nbTotal * 3 + 1};
 
                resultGroup[title]['x3 - return false'] = localResults;
 
@@ -1002,10 +1056,10 @@ function testAll() {
                   test('6', testFunction);
                });
 
-               localResults = { successful           : t.isSuccessful()         === (nbFails === 0)
-                              , countFailedTests     : t.countFailedTests()     === nbFails * 6
-                              , countSuccessfulTests : t.countSuccessfulTests() === nbSuccesses * 6
-                              , countTotalTests      : t.countTotalTests()      === nbTotal * 6};
+               localResults = { successful           : t.$.isSuccessful()         === (nbFails === 0)
+                              , countFailedTests     : t.$.countFailedTests()     === nbFails * 6
+                              , countSuccessfulTests : t.$.countSuccessfulTests() === nbSuccesses * 6
+                              , countTotalTests      : t.$.countTotalTests()      === nbTotal * 6};
 
                resultGroup[title]['x3 - section x1'] = localResults;
 
@@ -1023,10 +1077,10 @@ function testAll() {
                   return true;
                });
 
-               localResults = { successful           : t.isSuccessful()         === (nbFails === 0)
-                              , countFailedTests     : t.countFailedTests()     === nbFails * 6
-                              , countSuccessfulTests : t.countSuccessfulTests() === nbSuccesses * 6 + 1
-                              , countTotalTests      : t.countTotalTests()      === nbTotal * 6 + 1};
+               localResults = { successful           : t.$.isSuccessful()         === (nbFails === 0)
+                              , countFailedTests     : t.$.countFailedTests()     === nbFails * 6
+                              , countSuccessfulTests : t.$.countSuccessfulTests() === nbSuccesses * 6 + 1
+                              , countTotalTests      : t.$.countTotalTests()      === nbTotal * 6 + 1};
 
                resultGroup[title]['x3 - section x1 - return true'] = localResults;
 
@@ -1044,10 +1098,10 @@ function testAll() {
                   return false;
                });
 
-               localResults = { successful           : t.isSuccessful()         === false
-                              , countFailedTests     : t.countFailedTests()     === nbFails * 6 + 1
-                              , countSuccessfulTests : t.countSuccessfulTests() === nbSuccesses * 6
-                              , countTotalTests      : t.countTotalTests()      === nbTotal * 6 + 1};
+               localResults = { successful           : t.$.isSuccessful()         === false
+                              , countFailedTests     : t.$.countFailedTests()     === nbFails * 6 + 1
+                              , countSuccessfulTests : t.$.countSuccessfulTests() === nbSuccesses * 6
+                              , countTotalTests      : t.$.countTotalTests()      === nbTotal * 6 + 1};
 
                resultGroup[title]['x3 - section x1 - return false'] = localResults;
 
@@ -1073,10 +1127,10 @@ function testAll() {
                   test('12', testFunction);
                });
 
-               localResults = { successful           : t.isSuccessful()         === (nbFails === 0)
-                              , countFailedTests     : t.countFailedTests()     === nbFails * 12
-                              , countSuccessfulTests : t.countSuccessfulTests() === nbSuccesses * 12
-                              , countTotalTests      : t.countTotalTests()      === nbTotal * 12};
+               localResults = { successful           : t.$.isSuccessful()         === (nbFails === 0)
+                              , countFailedTests     : t.$.countFailedTests()     === nbFails * 12
+                              , countSuccessfulTests : t.$.countSuccessfulTests() === nbSuccesses * 12
+                              , countTotalTests      : t.$.countTotalTests()      === nbTotal * 12};
 
                resultGroup[title]['x3 - section x1'] = localResults;
 
@@ -1217,25 +1271,25 @@ function testAll() {
 
             results['no group / return true'] = test('no group / return true', function() {
                return true;
-            }).countErrors() === 0;
+            }).$.countErrors() === 0;
 
             results['no group / return false'] = test('no group / return false', function() {
                return false;
-            }).countErrors() === 0;
+            }).$.countErrors() === 0;
 
             results['no group / throw true'] = test('no group / throw true', function() {
                throw true;
-            }).countErrors() === 1;
+            }).$.countErrors() === 1;
 
             expectedErrors++;
             results['no group / throw false'] = test('no group / throw false', function() {
                throw true;
-            }).countErrors() === 1;
+            }).$.countErrors() === 1;
 
             expectedErrors++;
             results['no group / throw false'] = test('no group / throw false', function() {
                throw false;
-            }).countErrors() === 1;
+            }).$.countErrors() === 1;
 
          });
 

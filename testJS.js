@@ -688,7 +688,7 @@ This software include the following third-party programs :
        * @param {*}                         [param3]
        * @param {number}                    [param4]
        * @name TestContext
-       * @returns {TestUnit|TestContext|Section}
+       * @returns {Promise|TestContext|Section}
        * @this ThisTestContext
        * @property {TestContext}            async
        * @property {TestContext}            context
@@ -749,7 +749,7 @@ This software include the following third-party programs :
 
          this.reset();
 
-         return testUnit;
+         return testUnit.getPromise();
       };
 
       /**
@@ -992,7 +992,14 @@ This software include the following third-party programs :
       return build;
    })();
 
-
+   /**
+    * @typedef {Promise} TestPromise
+    * @property {function}    comment
+    * @property {function}    describe
+    * @property {TestPromise} not
+    * @property {function}    todo
+    *
+    */
 
    /**
     * @typedef {Object}
@@ -1035,7 +1042,9 @@ This software include the following third-party programs :
     * @property {TestUnit|Section}  parent
     * @property {Project}           project
     * @property {Promise}           promise
+    * @property {function}          promiseCatchFunction - Original "catch" function of the promise.
     * @property {string|undefined}  promiseRole
+    * @property {function}          promiseThenFunction  - Original "then" function of the promise.
     * @property {function}          rejectPromise        - Reject function of the test promise : it will be executed by the reject test function
     * @property {boolean}           result
     * @property {Section[]}         sections
@@ -1071,11 +1080,6 @@ This software include the following third-party programs :
       this.errorExpected  = false;
       this.toDoList       = [];
 
-      this.promise        = new Promise(function(fullfill, reject) {
-         this.fullfillPromise = fullfill;
-         this.rejectPromise   = reject;
-      }.bind(this));
-
       this.notes          = [];
 
       this.async          = param.async || this.executionDelay !== false || this.value instanceof Promise || this.value instanceof TestUnit;
@@ -1103,14 +1107,46 @@ This software include the following third-party programs :
          this.testExecution = new TestExecution(this);
       }
 
-      // Adding the "not" keyword
-      //noinspection JSUnusedGlobalSymbols
-      Object.defineProperty(this, 'not', { get : function not() { this.notMode = true; return this}.bind(this)});
-
       if (!this.enabled)
          return;
 
+      this.buildPromise();
+
       this.execute();
+   };
+
+   /**
+    *
+    * @returns {Promise}
+    */
+   TestUnit.prototype.buildPromise               = function buildPromise() {
+
+      var /** @type {string}  */ name;
+
+      this.promise        = new Promise(function(fullfill, reject) {
+         this.fullfillPromise = fullfill;
+         this.rejectPromise   = reject;
+      }.bind(this));
+
+      this.promiseThenFunction  = this.promise.then.bind(this.promise);
+      this.promiseCatchFunction = this.promise.catch.bind(this.promise);
+
+      for(name in TestType.all) {
+         this.promise[name] = buildTest_execute.bind({test : this, type : TestType.all[name], promise: this.promise});
+      }
+
+      this.promise.todo      = this.todo.bind(this);
+      this.promise.comment   = this.comment.bind(this);
+      this.promise.describe  = this.describe.bind(this);
+      this.promise.note      = this.note.bind(this);
+      this.promise.getResult = this.getResult.bind(this);
+      this.promise.then      = this.then.bind(this);
+      this.promise.catch     = this.catch.bind(this);
+
+      // Adding the "not" keyword
+      Object.defineProperty(this.promise, 'not', { get : function () { this.not(); return this.promise}.bind(this)});
+
+      this.promise.$ = this;
    };
 
    /**
@@ -1125,7 +1161,7 @@ This software include the following third-party programs :
 
       value = this.value;
 
-      testType = this.testType ? this.testType : TestUnit.TEST_TYPES.isTrue;
+      testType = this.testType ? this.testType : TestType.all.isTrue;
 
       if (!this.isUnitTest()) {
          this.results.validity = this.isValid();
@@ -1168,7 +1204,7 @@ This software include the following third-party programs :
    /**
     * @param {string|function} param1
     * @param {function}        [param2]
-    * @returns {TestUnit}
+    * @returns {TestPromise}
     */
    TestUnit.prototype.catch                      = function then(param1, param2) {
 
@@ -1208,6 +1244,8 @@ This software include the following third-party programs :
                                      , value        : value});
 
          this.nexts.push(catchPromise);
+
+         return catchPromise.getPromise();
       }
       else
          catchPromise = this.getPromise().then(param1, param2);
@@ -1398,13 +1436,13 @@ This software include the following third-party programs :
          // Test call by a "then" function
          else if (this.promiseRole === 'then')
 
-            promise = this.parent.getPromise().then(function(value) {
+            promise = this.parent.promiseThenFunction(function(value) {
                return this.testExecution.execute(value);
             }.bind(this));
 
          // Test call by a "catch" function
          else
-            promise = this.parent.getPromise().catch(function(value) {
+            promise = this.parent.promiseCatchFunction(function(value) {
                return this.testExecution.execute(value);
             }.bind(this));
 
@@ -1606,14 +1644,9 @@ This software include the following third-party programs :
 
    /**
     *
-    * @returns {Promise}
+    * @returns {TestPromise}
     */
    TestUnit.prototype.getPromise                 = function getPromise() {
-      if (this.promise === undefined)
-         this.promise = new Promise(function(fullfill) {
-            fullfill(this.value);
-         }.bind(this));
-
       return this.promise;
    };
 
@@ -1905,11 +1938,11 @@ This software include the following third-party programs :
 
    /**
     * Invert the sens of the test
-    * @returns {TestUnit}
+    * @returns {TestPromise}
     */
    TestUnit.prototype.not                        = function not() {
       this.notMode = true;
-      return this;
+      return this.getPromise();
    };
 
    /**
@@ -2041,7 +2074,7 @@ This software include the following third-party programs :
     *
     * @param {string|function} param1
     * @param {function}        [param2]
-    * @returns {TestUnit}
+    * @returns {TestPromise}
     */
    TestUnit.prototype.then                       = function then(param1, param2) {
 
@@ -2052,24 +2085,26 @@ This software include the following third-party programs :
       if (typeof(param1) === 'string') {
          title = param1;
          testFunction = param2;
-         then = new TestUnit({ async          : true
-                             , context        : this.childContext
-                             , enabled        : this.enabled
-                             , executionDelay : false
-                             , strict         : this.strictMode
-                             , parent         : this
-                             , project        : this.getProject()
-                             , promiseRole    : 'then'
-                             , title          : title
-                             , value          : testFunction});
-
-         this.nexts.push(then);
-         this.refresh();
       }
-      else
-         then = this.getPromise().then(param1);
+      else {
+         title = '[no title]';
+         testFunction = param1;
+      }
 
-      return then;
+      then = new TestUnit({ async          : true
+                          , context        : this.childContext
+                          , enabled        : this.enabled
+                          , executionDelay : false
+                          , strict         : this.strictMode
+                          , parent         : this
+                          , project        : this.getProject()
+                          , promiseRole    : 'then'
+                          , title          : title
+                          , value          : testFunction});
+
+      this.nexts.push(then);
+      this.refresh();
+      return then.getPromise();
    };
 
    TestUnit.prototype.todo                       = function todo(text) {
@@ -2083,167 +2118,6 @@ This software include the following third-party programs :
     */
    TestUnit.prototype.toString                   = function toString() {
       return this.title + ' : ' + (this.isSuccessful() ? 'success' : 'fail') + ' (' + this.countSuccessfulTests() + '/' + this.countTotalTests() + ')';
-   };
-
-   // Unit Tests
-
-   /**
-    * Test if the value is contain in the result
-    */
-   TestUnit.prototype.contains                   = function contains(value) {
-      this.testType = TestUnit.TEST_TYPES.contains;
-      this.testParameters = [value];
-      this.testParametersExport = common.copy(this.testParameters);
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    * Testing if the value is defined
-    */
-   TestUnit.prototype.equal                      = function equal(value) {
-      this.testType = TestUnit.TEST_TYPES.equal;
-      this.testParameters = [value];
-      this.testParametersExport = common.copy(this.testParameters);
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    *
-    * @param {number} minValue
-    * @param {number} maxValue
-    */
-   TestUnit.prototype.isBetween                  = function isBetween(minValue, maxValue) {
-      this.testType = TestUnit.TEST_TYPES.isBetween;
-      this.testParameters = [minValue, maxValue];
-      this.testParametersExport = common.copy(this.testParameters);
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    * Testing if the value is defined
-    */
-   TestUnit.prototype.isDefined                  = function isDefined() {
-      this.testType = TestUnit.TEST_TYPES.isDefined;
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    * Test if the value of the test is different than the given value
-    * @returns {TestUnit}
-    */
-   TestUnit.prototype.isDifferentThan            = function isDifferentThan(value) {
-      this.testType = TestUnit.TEST_TYPES.isDifferentThan;
-      this.testParameters = [value];
-      this.testParametersExport = common.copy(this.testParameters);
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    * Testing if the value is defined
-    */
-   TestUnit.prototype.isFalse                    = function isFalse() {
-      this.testType = TestUnit.TEST_TYPES.isFalse;
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    *
-    */
-   TestUnit.prototype.isGreaterOrEqualThan       = function isGreaterOrEqualThan(value) {
-      this.testType = TestUnit.TEST_TYPES.isGreaterOrEqualThan;
-      this.testParameters = [value];
-      this.testParametersExport = common.copy(this.testParameters);
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    *
-    */
-   TestUnit.prototype.isGreaterThan              = function isGreaterThan(value) {
-      this.testType = TestUnit.TEST_TYPES.isGreaterThan;
-      this.testParameters = [value];
-      this.testParametersExport = common.copy(this.testParameters);
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    *
-    */
-   TestUnit.prototype.isInstanceOf               = function isInstanceOf(value) {
-      this.testType = TestUnit.TEST_TYPES.isInstanceOf;
-      this.testParameters = [value];
-      this.testParametersExport = common.copy(this.testParameters);
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    *
-    */
-   TestUnit.prototype.isLesserOrEqualThan        = function isLesserOrEqualThan(value) {
-      this.testType = TestUnit.TEST_TYPES.isLesserOrEqualThan;
-      this.testParameters = [value];
-      this.testParametersExport = common.copy(this.testParameters);
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    *
-    */
-   TestUnit.prototype.isLesserThan               = function isLesserThan(value) {
-      this.testType = TestUnit.TEST_TYPES.isLesserThan;
-      this.testParameters = [value];
-      this.testParametersExport = common.copy(this.testParameters);
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    * Testing if the value is null
-    */
-   TestUnit.prototype.isNull                     = function isNull() {
-      this.testType = TestUnit.TEST_TYPES.isNull;
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    * Testing if the value is defined
-    */
-   TestUnit.prototype.isTrue                     = function isTrue() {
-      this.testType = TestUnit.TEST_TYPES.isTrue;
-      this.calcResult();
-      return this;
-   };
-
-   /**
-    * Testing if the value is undefined
-    */
-   TestUnit.prototype.isUndefined                = function isUndefined() {
-      this.testType = TestUnit.TEST_TYPES.isUndefined;
-      this.calcResult();
-      return this;
-   };
-
-   //noinspection ReservedWordAsName
-   /**
-    * Testing if the value is defined
-    */
-   TestUnit.prototype['throw']                   = function throwError(value) {
-      this.testType = TestUnit.TEST_TYPES.throw;
-      this.testParameters = [value];
-      this.testParametersExport = common.copy(this.testParameters);
-      this.calcResult();
-      return this;
    };
 
    /**
@@ -2262,17 +2136,6 @@ This software include the following third-party programs :
    TestUnit.lastId                               = 0;
 
    /**
-    * @typedef {Object} TestType
-    *
-    * @property {string}           code        - Code of the type
-    * @property {number}           nbParam     - Number of parameters expected
-    * @property {function:boolean} test        - Function to execute for non-strict test
-    * @property {function:boolean} strictTest  - Function to execute for strict test. If not defined, then the regular function is used (strict test is irrelevant)
-    * @property {boolean}          errorTest   - If true, then the first argument will be the error throw by the test
-    *
-    */
-
-   /**
     * List of all tests
     * @type {TestUnit[]}
     */
@@ -2282,63 +2145,160 @@ This software include the following third-party programs :
                                                    , unit : 'unit'};
 
    /**
+    * @typedef {Object} TestTypeParameter
+    * @property {string}            name
+    * @property {function: boolean} test
+    * @property {function: boolean} strict
+    * @property {boolean}           errorTest
+    *
+    */
+
+   /**
+    * @param {TestTypeParameter} parameters
+    * @constructor
+    * @class TestType
+    * @property {string}          name
+    * @property {function)        operation
+    * @property {function)        strictOperation
+    * @property {function:string} toString
+    */
+   var TestType                                  = function(parameters) {
+      this.name       = parameters.name;
+      this.test       = parameters.test;
+      this.strictTest = parameters.strict;
+      this.errorTest  = parameters.errorTest;
+   };
+
+   /**
+    *
+    * @param {TestTypeParameter} parameters
+    */
+   TestType.add                                  = function add(parameters) {
+
+      var /** @type {TestType} */ testType;
+
+       testType = new TestType(parameters);
+
+      TestType.all[testType.name] = testType;
+   };
+
+   /**
+    *
+    * @type {Object.<TestType>}
+    */
+   TestType.all = {};
+
+   TestType.add ( { name     : 'contains'
+                  , test     : function contains(a, b) {return a.indexOf(b)}});
+
+   TestType.add ( { name     : 'equal'
+                  , test     : function equal(a, b, c) { return a  == (arguments.length === 3 ? c : b)}
+                  , strict   : function equal(a, b, c) { return a === (arguments.length === 3 ? c : b)}});
+
+   TestType.add ( { name     : 'isBetween'
+                  , test     : function isBetween(a, b, c) {return a >= b && a <= c}});
+
+   TestType.add ( { name     : 'isDefined'
+                  , test     : function isDefined(a) {return a  != undefined}
+                  , strict   : function isDefined(a) {return a !== undefined}});
+
+   TestType.add ( { name     : 'isDifferentThan'
+                  , test     : function isDifferentThan(a, b) {return a != b}
+                  , strict   : function isDifferentThan(a, b) {return a !== b}});
+
+   TestType.add ( { name     : 'isFalse'
+                  , test     : function isFalse(a) {return a ? false : true}
+                  , strict   : function isFalse(a) {return a === false}});
+
+   TestType.add ( { name     : 'isGreaterOrEqualThan'
+                  , test     : function isGreaterOrEqualThan(a, b) {return a >= b}});
+
+   TestType.add ( { name     : 'isGreaterThan'
+                  , test     : function isGreaterThan(a, b) {return a > b}});
+
+   TestType.add ( { name     : 'isInstanceOf'
+                  , test     : function isInstanceOf(a, b) {return a instanceof b}});
+
+   TestType.add ( { name     : 'isLesserOrEqualThan'
+                  , test     : function isLesserOrEqualThan(a, b) {return a <= b}});
+
+   TestType.add ( { name     : 'isLesserThan'
+                  , test     : function isLesserThan(a, b) {return a < b}});
+
+   TestType.add ( { name     : 'isNull'
+                  , test     : function isNull(a) {return a == null}
+                  , strict   : function isNull(a) {return a === null}});
+
+   TestType.add ( { name     : 'isTrue'
+                  , test     : function isTrue(a) {return a ? true : false}
+                  , strict   : function isTrue(a) {return a === true}});
+
+   TestType.add ( { name     : 'isUndefined'
+                  , test     : function isUndefined(a) {return a == undefined}
+                  , strict   : function isUndefined(a) {return a === undefined}});
+
+   TestType.add ( { name     : 'throw'
+                  , errorTest: true
+                  , test     : function isUndefined(a) {return a == undefined}
+                  , strict   : function isUndefined(a) {return a === undefined}});
+
+   /**
     *
     * @type {Object.<TestType>}
     * @namespace TestUnit
     */
-   TestUnit.TEST_TYPES                           = {
-                                                     contains             : { code       : 'contains'
-                                                                            , test       : function contains(a, b) {return a.indexOf(b)}}
+   TestUnit.TEST_TYPES = {};
 
-                                                   , equal                : { code       : 'equal'
-                                                                            , test       : function equal(a, b, c) { return a  == (arguments.length === 3 ? c : b)}
-                                                                            , strictTest : function equal(a, b, c) { return a === (arguments.length === 3 ? c : b)}}
 
-                                                   , isBetween            : { code       : 'isBetween'
-                                                                            , test       : function isBetween(a, b, c) {return a >= b && a <= c}}
+   /**
+    *
+    * @param {TestUnit} testUnit
+    */
+   var buildTest                                 = function buildTest(testUnit) {
 
-                                                   , isDefined            : { code       : 'isDefined'
-                                                                            , test       : function isDefined(a) {return a != undefined}
-                                                                            , strictTest : function isDefined(a) {return a !== undefined}}
+      var /** @type {string}  */ name
+        , /** @type {Promise} */ promise;
 
-                                                   , isDifferentThan      : { code       : 'isDifferentThan'
-                                                                            , test       : function isDifferentThan(a, b) {return a != b}
-                                                                            , strictTest : function isDifferentThan(a, b) {return a !== b}}
+      promise = testUnit.getPromise();
 
-                                                   , isFalse              : { code       : 'isFalse'
-                                                                            , test       : function isFalse(a) {return a ? false : true}
-                                                                            , strictTest : function isFalse(a) {return a === false}}
+      for(name in TestType.all) {
+         promise[name] = buildTest_execute.bind({test : testUnit, type : TestType.all[name], promise: promise});
+      }
 
-                                                   , isGreaterOrEqualThan : { code       : 'isGreaterOrEqualThan'
-                                                                            , test       : function isGreaterOrEqualThan(a, b) {return a >= b}}
+      promise.todo      = testUnit.todo.bind(testUnit);
+      promise.comment   = testUnit.comment.bind(testUnit);
+      promise.describe  = testUnit.describe.bind(testUnit);
+      promise.note      = testUnit.note.bind(testUnit);
+      promise.getResult = testUnit.getResult.bind(testUnit);
+      promise.then      = testUnit.then.bind(testUnit);
+      promise.catch     = testUnit.catch.bind(testUnit);
 
-                                                   , isGreaterThan        : { code       : 'isGreaterThan'
-                                                                            , test       : function isGreaterThan(a, b) {return a > b}}
+      Object.defineProperty(promise, 'not', { get : function() { testUnit.not; return promise }});
 
-                                                   , isInstanceOf         : { code       : 'isInstanceOf'
-                                                                            , test       : function isInstanceOf(a, b) {return a instanceof b}}
+      promise.$ = testUnit;
 
-                                                   , isLesserOrEqualThan  : { code       : 'isLesserOrEqualThan'
-                                                                            , test       : function isLesserOrEqualThan(a, b) {return a <= b}}
+      return promise;
+   };
 
-                                                   , isLesserThan         : { code       : 'isLesserThan'
-                                                                            , test       : function isLesserThan(a, b) {return a < b}}
+   /**
+    * @typedef {Object} buildTest_executeThis
+    *
+    * @property {TestUnit} test
+    * @property {TestType} type
+    *
+    */
 
-                                                   , isNull               : { code       : 'isNull'
-                                                                            , test       : function isNull(a) {return a == null}
-                                                                            , strictTest : function isNull(a) {return a === null}}
+   /**
+    * @this {buildTest_executeThis}
+    */
+   var buildTest_execute                         = function() {
+      this.test.testType             = this.type;
+      this.test.testParameters       = Array.prototype.slice.call(arguments, 0);
+      this.test.testParametersExport = common.copy(this.test.testParameters);
+      this.test.calcResult();
 
-                                                   , isTrue               : { code       : 'isTrue'
-                                                                            , test       : function isTrue(a) {return a ? true : false}
-                                                                            , strictTest : function isTrue(a) {return a === true}}
-
-                                                   , isUndefined          : { code       : 'isUndefined'
-                                                                            , test       : function isUndefined(a) {return a == undefined}
-                                                                            , strictTest : function isUndefined(a) {return a === undefined}}
-
-                                                   , throw                : { code       : 'throw'
-                                                                            , errorTest  : true
-                                                                            , test       : function throwError(error, a) {return error instanceof a}}};
+      return this.promise;
+   };
 
    /**
     *
@@ -2621,12 +2581,12 @@ This software include the following third-party programs :
          }
 
          // Promises tests
-         domTests = this.dom.querySelector('div#promises');
+         domTests = this.dom.querySelector('div#thenTests');
 
-         this.promiseTests = this.getPromiseTests();
+         this.thenTests = this.getThenTests();
 
-         for (t in this.promiseTests) {
-            domTests.appendChild(this.promiseTests[t].getDOM());
+         for (t in this.thenTests) {
+            domTests.appendChild(this.thenTests[t].getDOM());
          }
       }
 
@@ -2704,6 +2664,7 @@ This software include the following third-party programs :
              , startTime      : common.time2string(startTime)
              , strict         : this.test.strictMode
              , success        : this.test.isSuccessful()
+             , thens          : this.test.getNexts()
              , title          : this.test.getTitle()
              , toDoList       : this.test.getToDoList()
              , totalFails     : fails
@@ -2757,7 +2718,7 @@ This software include the following third-party programs :
    /**
     *
     */
-   DOMTest.prototype.getPromiseTests             = function getPromiseTests() {
+   DOMTest.prototype.getThenTests                = function getThenTests() {
       var /** @type {DOMTest[]}  */ domTests
         , /** @type {number}     */ t
         , /** @type {TestUnit[]} */ tests;
@@ -2822,7 +2783,7 @@ This software include the following third-party programs :
                +        '{{#notes}}<div class="note">{{.}}</div>{{/notes}}'
                +     '</header>'
                +     '<div id="tests"></div>'
-               +     '<div id="promises"></div>'
+               +     '<div id="thenTests"></div>'
                +  '</div>';
 
    };
