@@ -23,7 +23,9 @@ function testAll() {
 
    test('successful group', function() {
 
-      var t, token;
+      var t, token1, token2;
+
+      test.describe('All this tests should be successful');
 
       test('successful test', true);
 
@@ -42,33 +44,33 @@ function testAll() {
       });
 
       // Return value
-      token = {};
+      token1 = {token : 1};
 
       t = test('successful group', function() {
-         return token;
+         return token1;
       });
 
-      t.describe('Here, we test that the returned value is visible from the "then" test.');
+      t.describe('Testing that the returned value is visible from the "then" tests.');
 
       t.then(function(test, value) {
-         return value === token;
+         return value === token1;
       });
 
       t.then(function(test, value) {
-         return value === token;
+         return value === token1;
       });
 
 
       // Delay
 
-      token = {};
+      token2 = {token : 2};
 
       t = test.delay('successful group', 10, function() {
-         return token;
+         return token2;
       });
 
       t.then(function(test, value) {
-         return value === token;
+         return value === token2;
       });
 
    });

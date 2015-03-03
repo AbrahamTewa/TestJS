@@ -1415,7 +1415,7 @@ This software include the following third-party programs :
 
             setTimeout(function() {
                try {
-                  fullfillFunction(this.testExecution.execute(value));
+                  fullfillFunction(this.testExecution.execute(this.value));
                }
                catch (err) {
                   rejectFunction(err);
@@ -1427,8 +1427,8 @@ This software include the following third-party programs :
          // Standard "async" call
          else if (this.promiseRole === undefined) {
 
-            promise = Promise.resolve().then(function(value) {
-               return this.testExecution.execute(value);
+            promise = Promise.resolve().then(function() {
+               return this.testExecution.execute(this.value);
             }.bind(this));
 
          }
@@ -1465,8 +1465,8 @@ This software include the following third-party programs :
          }.bind(this));
 
       }
-
-      this.complete(false, this.value);
+      else
+         this.complete(false, this.value);
    };
 
    /**
@@ -1565,19 +1565,18 @@ This software include the following third-party programs :
          nexts.push(this.nexts[n].getData(failedOnly));
       }
 
-      data = {
-         async: this.async
-         , enabled: this.enabled
-         , id: this.id
-         , nexts: nexts
-         , not: this.notMode
-         , result: this.results.test
-         , sections: []
-         , strict: this.strictMode
-         , testParameters: this.testParametersExport
-         , title: this.title
-         , type: 'TestUnit'
-         , value: this.value
+      data = { async         : this.async
+             , enabled       : this.enabled
+             , id            : this.id
+             , nexts         : nexts
+             , not           : this.notMode
+             , result        : this.results.test
+             , sections      : []
+             , strict        : this.strictMode
+             , testParameters: this.testParametersExport
+             , title         : this.title
+             , type          : 'TestUnit'
+             , value         : this.value
       };
 
       for (s in this.sections) {
