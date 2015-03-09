@@ -33,7 +33,9 @@ function testAll() {
          test('successful test', true);
       });
 
-      t = test('successful test', function() {});
+      t = test('successful test', function() {
+
+      });
 
       t.describe('Empty test');
 
@@ -71,78 +73,25 @@ function testAll() {
          return value === token2;
       });
 
-      // Return a promise
-
-      test('Successful group', function() {
-         return new Promise(function(fullfill) {
-            fullfill(true);
-         });
-      });
-
-      test('Successful group', function() {})
-         .then(function() {
-            return new Promise(function(fullfill) {
-               fullfill(true);
-            });
-         }).describe('A promise "then" function that return "true" will pass');
-
    });
 
    test('failed group', function() {
 
       var testPromise;
 
-      test.describe(
-               'This group should be marked as a failed one. Here we test several things :'
-            +  '<ul>'
-            +     '<li>A failed test mark is groups as failed</li>'
-            +     '<li>A group who\'s function do not return any value and don\'t has any child test is a failed one</li>'
-            +  '</ul>');
-
       test('successful test', true);
-      test('failed test'    , false).describe('For this test, the value was simply "false"');
+      test('failed test'    , false);
 
       test('successful group', function() {}).then('successful test', function() {return true});
 
-      testPromise = test('failed group', function() {}).describe('A test whose function return undefined and has no child is a failed test');
+      testPromise = test('failed group', function() {});
 
       testPromise.then('successful test', function() {return true});
-      testPromise.then('failed test', function() {return false}).describe('A function that return false is a failed test');
+      testPromise.then('failed test', function() {return false});
 
       test('successful group', function() {
          test('successful test', true);
       });
-
-      test('failed group', function() {
-      }).then(function() {
-         return false;
-      }).describe('A promise "then" function that return false will fail');
-
-      test('Successful group', function() {})
-         .then(function() {
-            return new Promise(function(fullfill) {
-               fullfill(true);
-            });
-         }).describe('A promise "then" function that return "true" will pass');
-
-      test('failed group', function() {})
-         .then(function() {
-            return new Promise(function(fullfill) {
-               fullfill(false);
-            });
-         }).describe('A promise "then" function that return "false" will fail');
-
-      test('Successful group', function() {
-         return new Promise(function(fullfill) {
-            fullfill(true);
-         })
-      }).describe('A test who return a promise whose value is "true" will pass');
-
-      test('Fail group', function() {
-         return new Promise(function(fullfill) {
-            fullfill(false);
-         })
-      }).describe('A test who return a promise whose value is "false" will fail');
 
    });
 
@@ -661,7 +610,7 @@ function testAll() {
 
          test('normal', function() {
             not = false;
-            test('noStrict', noStrict);
+            test('noStrit', noStrict);
             test('strict', strict);
          });
 
@@ -895,8 +844,9 @@ function testAll() {
          executedImmediately = false;
 
          tests.returnFalse = test.async('returnFalse', function() {
+            results.returnFalse.async = true;
             return false;
-         });
+         }).equal(false);
 
          results.returnFalse.result = tests.returnTrue.then(function() {
             return tests.returnFalse.getResult() === false;
@@ -1467,12 +1417,14 @@ test('TestJS handle promises', new Promise(function(fullfill) {
 
       for(r in results) {
          if (typeof(results[r]) === 'object' && !(results[r] instanceof Promise || results[r] instanceof test.constructors.Test)) {
+
             test(r, function() {
                checkResults(results[this.r]);
             }.bind({r:r}));
          }
          else
             test(r, results[r]);
+
       }
    }
 
