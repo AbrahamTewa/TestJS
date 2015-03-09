@@ -248,12 +248,15 @@ body {
     overflow: hidden; }
     .testJS .test.collapsed > header > #description
     , .testJS .test.collapsed > header > .todo
+    , .testJS .test.collapsed > header > .errorReason
     , .testJS .test.collapsed > header > .note
     , .testJS .test.collapsed > header > .comment, .testJS .section.collapsed > header > #description
     , .testJS .section.collapsed > header > .todo
+    , .testJS .section.collapsed > header > .errorReason
     , .testJS .section.collapsed > header > .note
     , .testJS .section.collapsed > header > .comment, .testJS .project.collapsed > header > #description
     , .testJS .project.collapsed > header > .todo
+    , .testJS .project.collapsed > header > .errorReason
     , .testJS .project.collapsed > header > .note
     , .testJS .project.collapsed > header > .comment {
       display: none; }
@@ -275,12 +278,15 @@ body {
         width: 3em; }
       .testJS .test > header > #description
       , .testJS .test > header > .todo
+      , .testJS .test > header > .errorReason
       , .testJS .test > header > .note
       , .testJS .test > header > .comment, .testJS .section > header > #description
       , .testJS .section > header > .todo
+      , .testJS .section > header > .errorReason
       , .testJS .section > header > .note
       , .testJS .section > header > .comment, .testJS .project > header > #description
       , .testJS .project > header > .todo
+      , .testJS .project > header > .errorReason
       , .testJS .project > header > .note
       , .testJS .project > header > .comment {
         margin-left: 30px;
@@ -294,23 +300,29 @@ body {
         font-size: 0.8em; }
         .testJS .test > header > #description
         > li, .testJS .test > header > .todo
+        > li, .testJS .test > header > .errorReason
         > li, .testJS .test > header > .note
         > li, .testJS .test > header > .comment > li, .testJS .section > header > #description
         > li, .testJS .section > header > .todo
+        > li, .testJS .section > header > .errorReason
         > li, .testJS .section > header > .note
         > li, .testJS .section > header > .comment > li, .testJS .project > header > #description
         > li, .testJS .project > header > .todo
+        > li, .testJS .project > header > .errorReason
         > li, .testJS .project > header > .note
         > li, .testJS .project > header > .comment > li {
           width: calc(100% - 5em); }
         .testJS .test > header > #description:before
         , .testJS .test > header > .todo:before
+        , .testJS .test > header > .errorReason:before
         , .testJS .test > header > .note:before
         , .testJS .test > header > .comment:before, .testJS .section > header > #description:before
         , .testJS .section > header > .todo:before
+        , .testJS .section > header > .errorReason:before
         , .testJS .section > header > .note:before
         , .testJS .section > header > .comment:before, .testJS .project > header > #description:before
         , .testJS .project > header > .todo:before
+        , .testJS .project > header > .errorReason:before
         , .testJS .project > header > .note:before
         , .testJS .project > header > .comment:before {
           border-right: solid 1px #d0d0d0;
@@ -318,6 +330,13 @@ body {
           width: 5em;
           margin-right: 8px;
           padding-right: 8px; }
+      .testJS .test > header > .errorReason, .testJS .section > header > .errorReason, .testJS .project > header > .errorReason {
+        order: 5; }
+        .testJS .test > header > .errorReason:before, .testJS .section > header > .errorReason:before, .testJS .project > header > .errorReason:before {
+          background-color: #d9edf7;
+          content: 'Error'; }
+        .testJS .test > header > .errorReason:empty, .testJS .section > header > .errorReason:empty, .testJS .project > header > .errorReason:empty {
+          display: none; }
       .testJS .test > header > #description, .testJS .section > header > #description, .testJS .project > header > #description {
         order: 6; }
         .testJS .test > header > #description:before, .testJS .section > header > #description:before, .testJS .project > header > #description:before {

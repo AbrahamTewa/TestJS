@@ -26,6 +26,7 @@
 
               & > #description
             , & > .todo
+            , & > .errorReason
             , & > .note
             , & > .comment {
                display: none;
@@ -68,6 +69,7 @@
 
            & > #description
          , & > .todo
+         , & > .errorReason
          , & > .note
          , & > .comment {
 
@@ -105,6 +107,20 @@
                padding-right: 8px;
             }
 
+         }
+
+         & > .errorReason {
+            order: 5;
+
+            &:before {
+
+               background-color: #d9edf7;
+               content: 'Error';
+            }
+
+            &:empty {
+               display: none;
+            }
          }
 
          & > #description {
