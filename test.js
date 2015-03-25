@@ -167,7 +167,7 @@ function testAll() {
             else
                unitTest['normal']['not strict'] = results;
 
-            test('noTestTypes', function() {
+            test('noTestTypes'    , function() {
 
                results['noTestTypes'] = {};
 
@@ -195,7 +195,7 @@ function testAll() {
                makeTest('NaN'      , {}       , true );
             });
 
-            test('isTrue', function() {
+            test('isTrue'         , function() {
                results['isTrue'] = {};
 
                function makeTest(name, value, result) {
@@ -225,7 +225,7 @@ function testAll() {
                makeTest('NaN'      , {}       , true );
             });
 
-            test('isFalse', function() {
+            test('isFalse'        , function() {
                results['isFalse'] = {};
 
                function makeTest(name, value, result) {
@@ -255,7 +255,7 @@ function testAll() {
                makeTest('NaN'      , {}       , false);
             });
 
-            test('isUndefined', function() {
+            test('isUndefined'    , function() {
                results['isUndefined'] = {};
 
                function makeTest(name, value, result) {
@@ -285,7 +285,7 @@ function testAll() {
                makeTest('NaN'      , {}       , false);
             });
 
-            test('isDefined', function() {
+            test('isDefined'      , function() {
                results['isDefined'] = {};
 
                function makeTest(name, value, result) {
@@ -315,7 +315,7 @@ function testAll() {
                makeTest('NaN'      , {}       , true );
             });
 
-            test('equal', function() {
+            test('equal'          , function() {
 
                var /** @type {number}   */ a
                  , /** @type {Array}    */ array
@@ -387,7 +387,7 @@ function testAll() {
                object = {};
                array  = [];
 
-               values       = [ 0 ,  1 ,  2 ,  Infinity ,  true ,  false ,  [] ,  {} ,  object ,  array ,   ''  ,  undefined ,  null ];
+               values       = [ 0 ,  1 ,  2 ,  Infinity ,  true ,  false ,  [] ,  {} ,  object ,  array ,   ''  ,  undefined ,  null];
                valuesString = ['0', '1', '2', 'Infinity', 'true', 'false', '[]', '{}', 'object', 'array', '\'\'', 'undefined', 'null'];
 
                for(a in values) {
@@ -401,6 +401,61 @@ function testAll() {
                      }
                   });
                }
+            });
+
+            test('throwValue'     , function() {
+
+               var /** @type {Object}   */ testResults
+                 , /** @type {function} */ testFunction
+                 , /** @type {number}   */ v
+                 , /** @type {Array}    */ values
+                 , /** @type {string[]} */ valuesString;
+
+               testResults = {};
+
+               results['throwValue'] = testResults;
+
+               testFunction = function(label, value) {
+
+                  var currentResults, throwingThenFunction, notThrowingThenFunction;
+
+                  throwingThenFunction = function(test) {
+                     return test.parent.parent.getResult();
+                  };
+
+                  notThrowingThenFunction = function(test) {
+                     return !test.parent.parent.getResult();
+                  };
+
+                  currentResults = {};
+
+                  testResults[label] = currentResults;
+
+                  currentResults.throwing    = { sync  : test('sync', function() {throw value;}).throwValue(value)
+                                               , async : test.async('async', function() {throw value;}).throwValue(value)};
+
+                  currentResults.throwing.sync_then  = currentResults.throwing.sync.catch(throwingThenFunction).describe('This test is only here to make sure that the "notThrowing" tests are working');
+                  currentResults.throwing.async_then = currentResults.throwing.async.catch(throwingThenFunction).describe('This test is only here to make sure that the "notThrowing" tests are working');;
+
+                  currentResults.notThrowing = { sync  : test('sync' , function() {return value}).throwValue(value).then(notThrowingThenFunction)
+                                               , async : test.async('async', function() {return value}).throwValue(value).then(notThrowingThenFunction) };
+
+               };
+
+               values       = [ 0 ,  1 ,  2 ,  Infinity ,  true ,  false ,  [] ,  {} ,  ''  ,  undefined ,  null];
+               valuesString = ['0', '1', '2', 'Infinity', 'true', 'false', '[]', '{}', '\'\'', 'undefined', 'null'];
+
+               for(v in values) {
+
+                  test(valuesString[v], function() {
+                     //noinspection JSReferencingMutableVariableFromClosure
+                     testFunction(valuesString[v], values[v]);
+                  });
+
+               }
+
+
+
             });
          };
 
@@ -904,6 +959,151 @@ function testAll() {
 
          // Checking that the async code hasn't been executed immediately
          results.returnFalse.sync = executedImmediately === false;
+
+      });
+
+      test('promise' , function() {
+
+         var promiseTests;
+
+         promiseTests = {};
+
+         testAll['promise'] = promiseTests;
+
+         test('value is a promise', function() {
+            var /** @type {Object.<Promise>} */ promises
+              , /** @type {Object}           */ results;
+
+            results = {};
+            promiseTests['value is a promise']  = results;
+
+            promises   = {};
+
+            // true
+            promises.true = test('true', Promise.resolve(true));
+
+            results.true = promises.true.then(function() {
+               return promises.true.getResult() === true;
+            });
+
+            // false
+            promises.false = test('false', Promise.resolve(false));
+
+            results.false = promises.false.then(function() {
+               return promises.false.getResult() === false;
+            });
+
+            // Successful text
+            promises.text = test('text', Promise.resolve('Successful text')).equal('Successful text');
+
+            results.text = promises.text.then(function() {
+               return promises.text.getResult() === true;
+            });
+
+            // Failed text
+            promises.failedText = test('failedText', Promise.resolve('failed text')).equal('not equal');
+
+            results.failedText = promises.failedText.then(function() {
+               return promises.failedText.getResult() === false;
+            });
+
+            // Throwing test
+            promises.throwingValue = test('throwingValue', new Promise(function() { throw 'value'})).throwValue('value');
+
+            results.throwingValue = promises.throwingValue.catch(function(test, error) {
+               return promises.throwingValue.getResult() === true && error === 'value';
+            });
+
+            // Throwing wrong value
+            promises.throwingWrongValue = test('throwingWrongValue', new Promise(function() { throw 'wrong value'})).throwValue('value');
+
+            results.throwingWrongValue = promises.throwingWrongValue.catch(function(test, error) {
+               return promises.throwingWrongValue.getResult() === false && error === 'wrong value';
+            });
+
+            // Not throwing error
+            promises.throwingWrongValue = test('throwingWrongValue', new Promise(function() { return 'value'})).throwValue('value');
+
+            results.throwingWrongValue = promises.throwingWrongValue.then(function(test, value) {
+               return promises.throwingWrongValue.getResult() === false && value === undefined;
+            });
+
+         });
+
+         test('then/catch on sync test', function() {
+            var /** @type {Object.<Promise>} */ promises
+              , /** @type {Object}           */ results
+              , /** @type {Object.<boolean>} */ syncTokens
+              , /** @type {TestUnit}         */ testCatchControl
+              , /** @type {TestUnit}         */ thenTestControl;
+
+            test('Checking asynchronous mode');
+
+            results = {};
+            promiseTests['then/catch on sync test']  = results;
+            syncTokens = {};
+
+            // then
+            syncTokens.then = false;
+            results.then = test('then', true).then(function() {
+               return syncTokens.then === true;
+            });
+
+            syncTokens.then = true;
+
+            //catch
+            syncTokens.catch = false;
+            results.catch = test('catch', function() {throw 'catch'}).catch(function() {
+               return syncTokens.catch === true;
+            });
+
+            syncTokens.catch = true;
+
+            test('Test on then/catch results');
+
+            // Checking that test function will be apply on the "then" function result.
+            results.testThen = test('then', 1).then(function() {
+               return 2;
+            }).equal(2);
+
+            // Controlling previous test by make creating a fail test
+            thenTestControl = test('then', 1).then(function() {
+               return 2;
+            }).equal(3);
+
+            results.thenTestControl = test('then control', function() {
+
+               // Checking that the test has fail
+               return new Promise(function(fullfill) {
+
+                  thenTestControl.then(function() {
+                     fullfill(thenTestControl.getResult() === false)
+                  });
+
+               });
+
+            });
+
+            // Catch
+            results.testCatch = test('catch', function() { throw 1}).catch(function() {
+               throw 2
+            }).throwValue(2);
+
+            testCatchControl = test('This test should fail', function() { throw 1}).catch(function() {throw 2}).throwValue(3);
+
+            results.testCatchControl = test('catch control', function() {
+
+               // Checking that the test has fail
+               return new Promise(function(fullfill) {
+
+                  testCatchControl.catch(function() {
+                     fullfill(testCatchControl.getResult() === false)
+                  });
+
+               });
+            });
+
+         });
 
       });
 
@@ -1480,9 +1680,12 @@ test('TestJS handle promises', new Promise(function(fullfill) {
       checkResults(testAll);
    }).describe('This section is the results of all the tests : It should be successful');
 
+   resultTest.comment('The test on the throwValue test type fail for NaN value. This is because in javascript NaN != NaN. The question is : how to handle this correctly? ');
    resultTest.todo('Test');
    resultTest.todo('Another test');
    resultTest.comment('A comment');
 
-   console.log(test.getData());
+   /*test.getCompletedPromise().then(function(){
+      console.log(test.parent.getData());
+   })*/
 }

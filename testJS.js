@@ -1046,7 +1046,6 @@ This software include the following third-party programs :
     * @property {TestUnit|Section}  parent
     * @property {Project}           project
     * @property {Promise}           promise
-    * @property {function}          promiseCatchFunction - Original "catch" function of the promise.
     * @property {string|undefined}  promiseRole
     * @property {function}          promiseThenFunction  - Original "then" function of the promise.
     * @property {function}          rejectPromise        - Reject function of the test promise : it will be executed by the reject test function
@@ -1087,6 +1086,7 @@ This software include the following third-party programs :
       this.errorExpected  = false;
       this.toDoList       = [];
       this.errors         = [];
+      this.testType       = undefined
 
       this.notes          = [];
 
@@ -1136,16 +1136,7 @@ This software include the following third-party programs :
          this.rejectPromise   = reject;
       }.bind(this));
 
-      this.promiseCatchFunction = this.promise.catch.bind(this.promise);
       this.promiseThenFunction  = this.promise.then.bind(this.promise);
-
-      /*this.promiseThenFunction  = function() {
-         return promiseThenFunction.apply(undefined, arguments);
-      };
-
-      this.promiseCatchFunction = function() {
-         return promiseCatchFunction.apply(undefined, arguments);
-      }.bind(this);*/
 
       for(name in TestType.all) {
          this.promise[name] = buildTest_execute.bind({test : this, type : TestType.all[name], promise: this.promise});
@@ -1175,7 +1166,10 @@ This software include the following third-party programs :
         , /** @type {TestType} */ testType
         , value;
 
-      value = this.value;
+      if (this.errorExpected)
+         value = this.error;
+      else
+         value = this.value;
 
       testType = this.testType ? this.testType : TestType.all.isTrue;
 
@@ -1187,10 +1181,16 @@ This software include the following third-party programs :
 
       this.results.validity = true;
 
+      // Creating parameters list for the test function
       params = [value].concat(this.testParameters);
 
       // If no errors has been raised, then we continue
-      if (this.error === undefined || this.errorExpected) {
+      if (this.results.error && !this.errorExpected)
+         result = false;
+      else if (this.errorExpected && !this.results.error)
+         result = false;
+      else {
+
          try {
             if (this.strictMode && testType.strictTest !== undefined)
                result = testType.strictTest.apply(undefined, params);
@@ -1226,8 +1226,11 @@ This software include the following third-party programs :
     * @param {function}        [param2]
     * @returns {TestPromise}
     */
-   TestUnit.prototype.catch                      = function then(param1, param2) {
-      return this.then(param1, undefined, param2);
+   TestUnit.prototype['catch']                   = function (param1, param2) {
+      if (arguments.length === 1)
+         return this.then(undefined, param1);
+      else
+         return this.then(param1, undefined, param2);
    };
 
    /**
@@ -1237,7 +1240,7 @@ This software include the following third-party programs :
     */
    TestUnit.prototype.comment                    = function comment(comment) {
       this.comments.push(comment);
-      return this;
+      return this.getPromise();
    };
 
    /**
@@ -1368,7 +1371,7 @@ This software include the following third-party programs :
      */
    TestUnit.prototype.describe                   = function describe(description) {
       this.description = description;
-      return this;
+      return this.promise;
    };
 
    /**
@@ -1380,7 +1383,7 @@ This software include the following third-party programs :
     */
    TestUnit.prototype.done                       = function done() {
       this.testExecution.done();
-      return this;
+      return this.getPromise();
    };
 
    /**
@@ -1391,15 +1394,25 @@ This software include the following third-party programs :
    TestUnit.prototype.execute                    = function execute() {
       var /** @type {function} */ fullfillFunction
         , /** @type {Promise}  */ promise
-        , /** @type {function} */ rejectFunction;
+        , /** @type {function} */ rejectFunction
+        , /** @type {function} */ thenFunction;
 
       if (!this.enabled)
          return;
 
       if (this.async || this.value instanceof Promise) {
 
-         // The value was a promise
-         if (this.value instanceof Promise) {
+         // The value is a promise
+         if (this.value.$ instanceof TestUnit) {
+
+            thenFunction = function() {
+               return this.value.$.getResult();
+            }.bind(this);
+
+            promise = this.value.$.promiseThenFunction(thenFunction, thenFunction);
+         }
+
+         else if (this.value instanceof Promise) {
             promise = this.value;
          }
 
@@ -1440,7 +1453,7 @@ This software include the following third-party programs :
 
          // Test call by a "catch" function
          else
-            promise = this.parent.promiseCatchFunction(function(error) {
+            promise = this.parent.promiseThenFunction(undefined, function(error) {
                return this.testExecution.execute(error);
             }.bind(this));
 
@@ -1655,9 +1668,6 @@ This software include the following third-party programs :
       if (this.results.validity === false)
          return false;
 
-      if (this.results.error    === true)
-         return false;
-
       return this.results.timeout !== false;
    };
 
@@ -1807,16 +1817,6 @@ This software include the following third-party programs :
       return this.testExecution.getDuration(true) >= this.timeout ? false : undefined;
    };
 
-   TestUnit.prototype.isGroup                    = function isGroup() {
-      if (this.sections.length > 1)
-         return true;
-
-      if (this.nexts.length > 0)
-         return true;
-
-      return this.sections[0].getTests().length > 0;
-   };
-
    /**
     * Indicate if the test is closed (true) or not (false).
     * A test is closed if it has finished or as reached the timeout
@@ -1836,6 +1836,16 @@ This software include the following third-party programs :
          return true;
       }
 
+   };
+
+   TestUnit.prototype.isGroup                    = function isGroup() {
+      if (this.sections.length > 1)
+         return true;
+
+      if (this.nexts.length > 0)
+         return true;
+
+      return this.sections[0].getTests().length > 0;
    };
 
    /**
@@ -1915,6 +1925,7 @@ This software include the following third-party programs :
     */
    TestUnit.prototype.note                       = function note(note) {
       this.notes.push(note);
+      return this.getPromise();
    };
 
    /**
@@ -1942,10 +1953,12 @@ This software include the following third-party programs :
             this.calculated = true;
             this.rejectPromise(this.error);
          }
-         else {
+
+         if (!this.results.error || this.errorExpected) {
             try {
                this.calcResult();
-               this.fullfillPromise(this.value);
+               if (!this.results.error)
+                  this.fullfillPromise(this.value);
             }
             catch(error) {
                this.error = error;
@@ -1977,14 +1990,18 @@ This software include the following third-party programs :
 
          // Errors
          errors = 0;
-         if (this.results.error) {
+         if (this.results.error && !this.errorExpected) {
             errors += 1;
             this.errors.push('The test has raised an exception');
+         }
+         else if (!this.results.error && this.errorExpected) {
+            errors += 1;
+            this.errors.push('The test should have raise an exception');
          }
 
          // Fails
          fails  = this.isUnitTest() && !this.results.test ? 1 : 0;
-         fails += this.results.error ? 1 : 0;
+         fails += errors;
          fails += !this.results.validity ? 1 : 0;
 
          if (this.isUnitTest() && !this.results.test)
@@ -2085,15 +2102,31 @@ This software include the following third-party programs :
         , /** @type {TestUnit} */ thenTest
         , /** @type {string}   */ title;
 
-      if (typeof(param1) === 'string') {
+      // .then(fct, fct);
+      // .then(fct);
+      // .then(undefined, fct);
+      // .then('test', undefined, fct);
+      // .then(undefined, undefined, fct);
+
+      if (arguments.length === 1) {
+         title = undefined;
+         thenFunction = param1;
+      }
+      else if (arguments.length == 2) {
+         if (typeof(param1) === 'string') {
+            title = param1;
+            thenFunction = param2;
+         }
+         else {
+            title = undefined;
+            thenFunction = param1;
+            catchFunction = param2;
+         }
+      }
+      else if (arguments.length === 3) {
          title = param1;
          thenFunction = param2;
          catchFunction = param3;
-      }
-      else {
-         title         = undefined;
-         thenFunction  = param1;
-         catchFunction = param2;
       }
 
       if (thenFunction != undefined) {
@@ -2131,12 +2164,12 @@ This software include the following third-party programs :
       if (thenTest != undefined)
          return thenTest.getPromise();
       else
-         return catchTest.getProject();
+         return catchTest.getPromise();
    };
 
    TestUnit.prototype.todo                       = function todo(text) {
       this.toDoList.push(text);
-      return this;
+      return this.getPromise();
    };
 
    /**
@@ -2176,7 +2209,7 @@ This software include the following third-party programs :
     * @property {string}            name
     * @property {function: boolean} test
     * @property {function: boolean} strict
-    * @property {boolean}           errorTest
+    * @property {boolean}           onerror
     *
     */
 
@@ -2188,12 +2221,13 @@ This software include the following third-party programs :
     * @property {function)        operation
     * @property {function)        strictOperation
     * @property {function:string} toString
+    * @property {boolean}
     */
    var TestType                                  = function(parameters) {
       this.name       = parameters.name;
       this.test       = parameters.test;
       this.strictTest = parameters.strict;
-      this.errorTest  = parameters.errorTest;
+      this.onerror    = parameters.onerror === undefined ? false : parameters.onerror;
    };
 
    /**
@@ -2264,10 +2298,14 @@ This software include the following third-party programs :
                   , test     : function isUndefined(a) {return a == undefined}
                   , strict   : function isUndefined(a) {return a === undefined}});
 
+   TestType.add ( { name     : 'throwValue'
+                  , onerror  : true
+                  , test     : function isUndefined(a, b) {return a == b}
+                  , strict   : function isUndefined(a, b) {return a === b}});
+
    TestType.add ( { name     : 'throw'
-                  , errorTest: true
-                  , test     : function isUndefined(a) {return a == undefined}
-                  , strict   : function isUndefined(a) {return a === undefined}});
+                  , onerror  : true
+                  , test     : function isUndefined(errorRaised, errorInstance) {return errorRaised instanceof errorInstance}});
 
    /**
     *
@@ -2316,14 +2354,15 @@ This software include the following third-party programs :
     */
 
    /**
-    * @this {buildTest_executeThis}
+    * @this buildTest_executeThis
     * @return {Promise}
     */
    var buildTest_execute                         = function() {
       this.test.testType             = this.type;
       this.test.testParameters       = Array.prototype.slice.call(arguments, 0);
       this.test.testParametersExport = common.copy(this.test.testParameters);
-      this.test.calculated = false;
+      this.test.calculated           = false;
+      this.test.errorExpected        = this.type.onerror;
       this.test.refresh();
 
       return this.promise;
@@ -2685,7 +2724,7 @@ This software include the following third-party programs :
              , description    : this.test.getDescription()
              , duration       : duration
              , endTime        : common.time2string(endTime)
-             , errors         :this.test.errors.slice(0)
+             , errors         : this.test.errors.slice(0)
              , isGroup        : this.test.isGroup()
              , lang           : lang.test
              , notes          : this.test.getNotes()
