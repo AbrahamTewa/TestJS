@@ -1689,3 +1689,6 @@ test('TestJS handle promises', new Promise(function(fullfill) {
       console.log(test.parent.getData());
    })*/
 }
+
+testAll();
+test.display();

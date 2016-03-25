@@ -89,7 +89,7 @@ This software include the following third-party programs :
  *
  */
 
-(function (global, nonStrictFunction) {
+var test = (function (global, nonStrictFunction) {
    'use strict';
 
    var define, lang, exports, Mustache, tests;
@@ -3085,12 +3085,16 @@ This software include the following third-party programs :
 
    var project                                   = new Project();
 
-   global.test  = Context(project);
-   //global.xtest = buildContext(project).disabled;
-
    var token    = {};
+   
+   return Context(project);
 
 })(this, { Console_groupCollapsed : console.groupCollapsed
          , Console_groupEnd       : console.groupEnd
          , Console_warn           : console.warn
          , Console_log            : console.log});
+
+export default test;
+
+if (window)
+   window.test = test;
