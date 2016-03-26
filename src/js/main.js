@@ -117,7 +117,6 @@ var test = (function (global, nonStrictFunction) {
     * @property {string}           type
     *
     */
-   
 
    var project                                   = new Project();
    
@@ -129,6 +128,7 @@ var test = (function (global, nonStrictFunction) {
          , Console_log            : console.log});
 
 export default test;
+module.exports = test;
 
 if (window)
    window.test = test;
