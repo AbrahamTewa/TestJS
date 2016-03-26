@@ -87,8 +87,7 @@ var Mustache = require('mustache');
 var test = (function (global, nonStrictFunction) {
    'use strict';
 
-   var define, lang, exports, Mustache, tests;
-   exports = Mustache = {};
+   var define, lang, exports, tests;
 
    nonStrictFunction.groupCollapsed = function() {
       nonStrictFunction.Console_groupCollapsed.apply(console, arguments);
@@ -147,8 +146,6 @@ var test = (function (global, nonStrictFunction) {
                       , fail         : 'fail'
                       , yes          : 'yes'
                       , no           : 'no'}};
-
-   // End of mustache.js
 
    /**
     * @typedef {Object} TestExport

@@ -8,7 +8,7 @@ initConfig = {
     browserify : {
         build : {
             files : {
-                './index.js' : './src/js/index.js'
+                './test-js.js' : './src/js/test-js.js'
             }
           , options : {
                 transform  : [['babelify', { presets: ["es2015"] }]]
@@ -33,8 +33,9 @@ initConfig = {
   , copy : {
       test : {
         files : [
-            { src: './src/test.htm'   , dest: './test/test.htm'  }
-          , { src: './index.js'       , dest: './test/index.js'  }
+            { src: './src/test.htm', dest: './test/test.htm'   }
+          , { src: './test-js.js'  , dest: './test/test-js.js' }
+          , { src: './test-js.css' , dest: './test/test-js.css'}
         ]
       }
     }
@@ -50,7 +51,7 @@ initConfig = {
   , sass: {
       build : {
         files: {
-          './test/testJS.css': './src/stylesheets/testJS.scss'
+          './test-js.css': './src/stylesheets/test-js.scss'
         }
       }
     }
@@ -58,7 +59,7 @@ initConfig = {
   , uglify : {
       build : {
          files : {
-            './index.js': './index.js'
+            './test-js.js': './test-js.js'
          }
       }
    } 
