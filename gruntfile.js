@@ -3,6 +3,10 @@
 const BUILD_FOLDER = './build';
 var initConfig;
 
+var /** @type {boolean} */ debug;
+
+debug = true;
+
 initConfig = {
 
     browserify : {
@@ -14,6 +18,7 @@ initConfig = {
                 transform  : [['babelify', { presets: ["es2015"] }]]
               , standalone : false
               , node       : false
+              , browserifyOptions : {debug : debug}
             }
         }
       , test : {
@@ -27,7 +32,9 @@ initConfig = {
     }
 
   , clean : {
-      build :['./test/']
+      build :['./test/'
+             , 'test-js.js.map'
+             , 'test-js.css.map']
     }
 
   , copy : {
@@ -56,7 +63,10 @@ initConfig = {
    
   , uglify : {
       build : {
-         files : {
+
+         options : { sourceMap              : true
+                   , sourceMapIncludeSources: true}
+       , files : {
             './test-js.js': './test-js.js'
          }
       }

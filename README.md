@@ -11,7 +11,7 @@ Add to HTML file :
 
 ``` html
 <head>
-   <link type="text/css" rel="stylesheet" href="test-css.css"  media="screen,projection"/>
+   <link type="text/css" rel="stylesheet" href="test-js.css"  media="screen,projection"/>
    <script src="test-js.js"></script>
    <script>
     // ... all tests
