@@ -33,9 +33,8 @@ initConfig = {
   , copy : {
       test : {
         files : [
-            { src: './src/test.htm'    , dest: './test/test.htm'  }
-          , { src: './build/testJS.css', dest: './test/testJS.css'}
-          , { src: './index.js'        , dest: './test/index.js'  }
+            { src: './src/test.htm'   , dest: './test/test.htm'  }
+          , { src: './index.js'       , dest: './test/index.js'  }
         ]
       }
     }
@@ -51,7 +50,7 @@ initConfig = {
   , sass: {
       build : {
         files: {
-          './build/testJS.css': './src/stylesheets/testJS.scss'
+          './test/testJS.css': './src/stylesheets/testJS.scss'
         }
       }
     }
