@@ -12,7 +12,7 @@ initConfig = {
     browserify : {
         build : {
             files : {
-                './test-js.js' : './src/js/test-js.js'
+                './test-js.js' : './src/js/main.js'
             }
           , options : {
                 transform  : [['babelify', { presets: ["es2015"] }]]

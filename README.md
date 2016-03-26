@@ -6,7 +6,8 @@ TestJS is a javscript testing framework :
 * Synchronous and asynchronous tests
 * Lisibility
 
-### Install
+### Usage
+#### Into browser
 Add to HTML file :
 
 ``` html
@@ -14,13 +15,27 @@ Add to HTML file :
    <link type="text/css" rel="stylesheet" href="test-js.css"  media="screen,projection"/>
    <script src="test-js.js"></script>
    <script>
-    // ... all tests
+    // example of tests :
+      test('This is a successful test', true);
+
+    // Displaying test result
     test.display()
    </script>
 </head>
 ```
 
-### Usage
+#### Into console
+``` javascript
+var test = require('test-js');
+
+// example of tests :
+test('This is a successful test', true);
+
+// Displaying test result
+test.console();
+```
+
+### Full example
 
 ```javascript
 test('This is a successful test', true);
@@ -108,6 +123,4 @@ test('TestJS handle promises', new Promise(function(fullfill) {
 }).then('It will continue after the returned promise has finished', function() {return true});
 
 test.note('To display test, call the "display" method');
-
-test.display();
 ```
