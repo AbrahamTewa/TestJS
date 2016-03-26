@@ -11,8 +11,8 @@ Add to HTML file :
 
 ``` html
 <head>
-   <link type="text/css" rel="stylesheet" href="testJS.css"  media="screen,projection"/>
-   <script src="testJS.js"></script>
+   <link type="text/css" rel="stylesheet" href="test-css.css"  media="screen,projection"/>
+   <script src="test-js.js"></script>
    <script>
     // ... all tests
     test.display()

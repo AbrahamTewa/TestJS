@@ -33,9 +33,7 @@ initConfig = {
   , copy : {
       test : {
         files : [
-            { src: './src/test.htm', dest: './test/test.htm'   }
-          , { src: './test-js.js'  , dest: './test/test-js.js' }
-          , { src: './test-js.css' , dest: './test/test-js.css'}
+            { src: './src/test.htm', dest: './test/test.htm'}
         ]
       }
     }
