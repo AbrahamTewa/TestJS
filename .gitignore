@@ -6,3 +6,4 @@ node_modules
 npm-debug.log
 test-js.css.map
 test-js.js.map
+*.map

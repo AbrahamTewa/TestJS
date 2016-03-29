@@ -1,5 +1,14 @@
-import Context  from './Context';
-import Project from './Project';
+'use strict';
+
+var _Context = require('./Context');
+
+var _Context2 = _interopRequireDefault(_Context);
+
+var _Project = require('./Project');
+
+var _Project2 = _interopRequireDefault(_Project);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /*
 This software include the following third-party programs :
@@ -56,61 +65,60 @@ This software include the following third-party programs :
  *
  */
 
-var test = (function () {
-   'use strict';
+var test = function () {
+  'use strict';
 
-   var define;
+  var define;
 
-   define = function () //noinspection JSLint
-   {};
-   define.amd = undefined;
+  define = function define() //noinspection JSLint
+  {};
+  define.amd = undefined;
 
-   /*
-       *    - startDate
-       *    - endDate
-       *    - duration
-       *    - second
-       *    - countTotal
-       *    - countSuccess
-       *    - countFail
-       *    - yes
-       *    - no
-    */
+  /*
+      *    - startDate
+      *    - endDate
+      *    - duration
+      *    - second
+      *    - countTotal
+      *    - countSuccess
+      *    - countFail
+      *    - yes
+      *    - no
+   */
 
-   /**
-    * @typedef {Object} TestExport
-    * @property {SectionExport[]} sections
-    *
-    */
+  /**
+   * @typedef {Object} TestExport
+   * @property {SectionExport[]} sections
+   *
+   */
 
-   /**
-    * @typedef {Object} SectionExport
-    * @property {TestUnitExport[]} testUnits
-    * @property {string}           title
-    *
-    */
+  /**
+   * @typedef {Object} SectionExport
+   * @property {TestUnitExport[]} testUnits
+   * @property {string}           title
+   *
+   */
 
-   /**
-    * @typedef {Object} TestUnitExport
-    * @property {boolean}          async
-    * @property {TestExport}       childTests
-    * @property {TestUnitExport[]} nextTest
-    * @property {boolean}          not
-    * @property {boolean}          strict
-    * @property {string}           title
-    * @property {string}           type
-    *
-    */
+  /**
+   * @typedef {Object} TestUnitExport
+   * @property {boolean}          async
+   * @property {TestExport}       childTests
+   * @property {TestUnitExport[]} nextTest
+   * @property {boolean}          not
+   * @property {boolean}          strict
+   * @property {string}           title
+   * @property {string}           type
+   *
+   */
 
-   var project = new Project();
-   
-   return Context(project);
+  var project = new _Project2.default();
 
-})();
+  return (0, _Context2.default)(project);
+}();
 
 module.exports = test;
 
 try {
-   window.test = test;
-}
-catch(ex) {}
+  window.test = test;
+} catch (ex) {}
+//# sourceMappingURL=main.js.map

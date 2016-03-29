@@ -1691,4 +1691,3 @@ test('TestJS handle promises', new Promise(function(fullfill) {
 }
 
 testAll();
-test.display();

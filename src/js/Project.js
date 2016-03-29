@@ -10,8 +10,8 @@ import TestUnit from './TestUnit';
  * @property {string}      description
  * @property {string}      name
  */
-var Project                                   = function Project(title) {
-   TestUnit.call(this, {project: this, title : title});
+var Project                                   = function Project(name) {
+   TestUnit.call(this, {project: this, title : name});
 
    this.name    = !name ? 'Test' : name;
    this.authors = [];

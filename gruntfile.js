@@ -9,16 +9,33 @@ debug = true;
 
 initConfig = {
 
-    browserify : {
+    babel: {
         build : {
+            files : [{
+                cwd    : 'src'
+              , expand : true
+              , src    : [ '**/*.js'
+                         , '!js/browser.js'
+                         , '!js/test.js']
+              , dest   : 'dist'
+              , ext    : '.js'
+            }]
+          , options: {
+                sourceMap: true
+              , presets  : ['es2015']
+            }
+        }
+    }
+
+  , browserify : {
+        'build' : {
             files : {
-                './test-js.js' : './src/js/main.js'
+                './test-js.js' : './index.js'
             }
           , options : {
                 transform  : [['babelify', { presets: ["es2015"] }]]
-              , standalone : false
-              , node       : false
-              , browserifyOptions : {debug : debug}
+              , browserifyOptions : { debug         : debug
+                                    , browserField  : true}
             }
         }
       , test : {
@@ -33,7 +50,11 @@ initConfig = {
 
   , clean : {
       build :['./test/'
+             , '/dist/'
+             , 'browser.js'
+             , 'test-js.js'
              , 'test-js.js.map'
+             , 'test-js.css'
              , 'test-js.css.map']
     }
 
@@ -78,7 +99,8 @@ initConfig = {
 module.exports = function(/** @type {grunt} */ grunt) {
 
   grunt.initConfig(initConfig);
-
+   
+  grunt.loadNpmTasks('grunt-babel');
   grunt.loadNpmTasks('grunt-browserify');
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-copy');
@@ -86,12 +108,19 @@ module.exports = function(/** @type {grunt} */ grunt) {
   grunt.loadNpmTasks('grunt-contrib-sass');
   grunt.loadNpmTasks('grunt-contrib-uglify');
 
-  grunt.registerTask('build', [ 'clean:build'
-                              , 'browserify:build'
-                              , 'browserify:test'
-                              , 'sass:build'
-                              , 'uglify:build'
-                              , 'copy:test']);
+
+var buildTasks = [ 'clean:build'
+                 , 'babel:build'
+                 , 'browserify:build'
+                 , 'browserify:test'
+                 , 'sass:build'];
+   
+   if (!debug)
+      buildTasks.push('uglify:build');
+   
+   buildTasks.push('copy:test');
+
+  grunt.registerTask('build', buildTasks);
 
   grunt.registerTask('default', ['build']);
 };

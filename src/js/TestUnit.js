@@ -1,8 +1,9 @@
-import Context       from './Context';
-import Section       from './Section';
-import TestExecution from './TestExecution';
-import TestType      from './TestType';
+import Context             from './Context';
+import Section             from './Section';
+import TestExecution       from './TestExecution';
+import TestType            from './TestType';
 
+import {nonStrictFunction}   from './common';
 import { buildTest_execute } from './functions';
 
 /**

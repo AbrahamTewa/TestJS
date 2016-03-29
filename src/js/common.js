@@ -64,7 +64,29 @@ function time2string(time) {
    return timeString;
 }
 
+var nonStrictFunction = { Console_groupCollapsed : console.groupCollapsed
+                        , Console_groupEnd       : console.groupEnd
+                        , Console_warn           : console.warn
+                        , Console_log            : console.log}
+
+nonStrictFunction.groupCollapsed = function() {
+  nonStrictFunction.Console_groupCollapsed.apply(console, arguments);
+};
+
+nonStrictFunction.groupEnd = function() {
+  nonStrictFunction.Console_groupEnd.apply(console, arguments);
+};
+
+nonStrictFunction.warn = function() {
+  nonStrictFunction.Console_warn.apply(console, arguments);
+};
+
+nonStrictFunction.log = function() {
+  nonStrictFunction.Console_warn.apply(console, arguments);
+};
+
 export { copy
        , lpad
+       , nonStrictFunction
        , render2dom
        , time2string }
